@@ -1,0 +1,14 @@
+*.zip*
+*.png*
+*.fig*
+*.swp*
+*.mat*
+*.dat*
+*.avi*
+*.jpg*
+*.pdf*
+*.eps*
+*.doc*
+*.html*
+*.asv
+*.log
