@@ -1,3 +1,5 @@
+clear all;
+
 %% configs
 configs.flags.verbose=1;
 configs.flags.savedata=0;
@@ -16,7 +18,7 @@ configs.files.dirout=fullfile(configs.files.dir_data,'output');      % output di
 
 configs.load.version=1;         % TXY load stage version number
 
-configs.load.id=1:100;         % file id numbers to use for analysis
+configs.load.id=1:3615;         % file id numbers to use for analysis
 configs.load.mincount=0;         % min counts in window - 0 for no min
 configs.load.maxcount=Inf;          % max counts in window - Inf for no max
 
@@ -27,7 +29,7 @@ configs.load.window{1}=[0.46,0.481];      % T [s]
 configs.load.window{2}=[-5e-3,10e-3];    % X [m]
 configs.load.window{3}=[-20e-3,30e-3];    % Y [m]
 
-configs.image.voxel_res=1e-4*[1,1,1];   % ZXY voxel resolution [m]
+configs.image.voxel_res=1e-4*[0.33,1,1];   % ZXY voxel resolution [m]
 configs.image.size=[-30e-3,40e-3;-5e-3,5e-3; -25e-3,25e-3];   % image size/lims [T;X;Y] [m]
 
 %% initialise
@@ -206,6 +208,34 @@ if verbose>0
     end
     
     % Create animated GIF
-    imwrite(mov, cmap, 'animation.gif', 'DelayTime', 1e-3, 'LoopCount', inf)
+    t_gif=3;    % duration of gif
+    imwrite(mov, cmap, 'density_2d_slice.gif', 'DelayTime', t_gif/length(X), 'LoopCount', inf);
 end
 
+
+%% save results
+if configs.flags.savedata
+%     %%% fig
+%     % TODO - need to be able to save all graphics from each subroutine
+%     for ii=1:length(HFIG)
+%         for jj=1:length(HFIG{ii})
+%             saveas(HFIG{ii}{jj},[configs.files.dirout,'/',sprintf('fig_%d_%d',ii,jj),'.png']);
+%             saveas(HFIG{ii}{jj},[configs.files.dirout,'/',sprintf('fig_%d_%d',ii,jj),'.fig']);
+%         end
+%     end
+%     clear HFIG;     % clear HFIG graphics handle cell array from workspace
+    
+    %%% data
+    % get all vars in workspace except graphics handles
+    allvars=whos;
+    tosave=cellfun(@isempty,regexp({allvars.class},'^matlab\.(ui|graphics)\.'));
+    
+    % doesn't save the whole workspace this way
+    save([configs.files.dirout,'/',mfilename,'_data','.mat'],allvars(tosave).name);
+end
+
+%% end of code %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+t_main_end=toc(t_main_start);   % end of code
+disp('-----------------------------------------------');
+fprintf('Total elapsed time (s): %7.1f\n',t_main_end);
+disp('===================ALL TASKS COMPLETED===================');
