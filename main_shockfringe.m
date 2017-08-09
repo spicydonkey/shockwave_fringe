@@ -2,7 +2,7 @@ clear all;
 
 %% configs
 configs.flags.verbose=1;
-configs.flags.savedata=0;
+configs.flags.savedata=1;
 configs.flags.archive_txy=1;
 configs.flags.force_all_stages=0;
 configs.flags.graphics=1;
@@ -19,7 +19,7 @@ configs.files.dirout=fullfile(configs.files.dir_data,'output');      % output di
 
 configs.load.version=1.1;         % TXY load stage version number
 
-configs.load.id=1:100;         % file id numbers to use for analysis
+configs.load.id=1:3615;         % file id numbers to use for analysis
 configs.load.mincount=1000;         % min counts in window - 0 for no min
 configs.load.maxcount=Inf;          % max counts in window - Inf for no max
 
@@ -212,7 +212,7 @@ fitval.x=1:pal_nseq;
 fitval.y=feval(fitobject,fitval.x);
 
 % get number in BEC
-bec_n=paramfit(1,1)*(1-paramfit(2,1)).^(1:pal_nseq);
+bec_n=(paramfit(1,1)*(1-paramfit(2,1)).^(1:pal_nseq))';
 
 % summarise
 linewidth=1.5;
@@ -248,83 +248,113 @@ end
 %%% 3D density profile (full)
 nden3=cellfun(@(x) density3d(x,edges),pal_zxy0,'UniformOutput',false);
 
-%%% 2D projection
+%%% 2D projection - integrated
+% nden2: 2D projected density (unit like m^-2), Npulse X 3(dims Z,X,Y
+% int'd) cell-array
+nden2=cell(pal_nseq,3);
+for ii=1:pal_nseq
+    for jj=1:3
+        nden2{ii,jj}=squeeze(mean(nden3{ii},jj))*(edges{jj}(end)-edges{jj}(1));    % 2D density
+    end
+end
 
-%%% 2D slices
+% summarise
+if verbose>0
+    % each dim plotted in separate figure
+    plot_ncol=ceil(sqrt(pal_nseq));
+    plot_nrow=ceil(pal_nseq/plot_ncol);
+    
+    for ii=1:3
+        hfig_pal_nden2(ii)=figure();
+        
+        % get image X,Y axis - NOT CYCLIC
+        ord=[1,2,3];
+        ord_xy=ord([1:ii-1,ii+1:3]);    % pop the integrated dim out
+        
+        % plot each PAL as subfigure
+        for jj=1:pal_nseq
+            subplot(plot_nrow,plot_ncol,jj);
+            
+            % quick and dirty way to do density plot - imagesc
+            imagesc(cents{ord_xy(2)},cents{ord_xy(1)},nden2{jj,ii});
+            set(gca,'YDir','normal');   % orient it the correct way
+            
+            % annotate
+            axis equal;
+            box on;
+            ht=sprintf('(%d) %0.2g',jj,fitval.y(jj));
+            title(ht);
+        end
+    end
+end
 
+%% 2D slices
+% animation - sweep each dim and take 2D density slice
+% each dim plotted in separate figure
+plot_ncol=ceil(sqrt(pal_nseq));
+plot_nrow=ceil(pal_nseq/plot_ncol);
 
-% %% PAL density image
-% % construct edge/center vectors for each dim
-% edges=cell(3,1);
-% cents=cell(3,1);
-% for ii=1:3
-%     edges{ii}=configs.image.size(ii,1):configs.image.voxel_res(ii):configs.image.size(ii,2);
-%     cents{ii}=0.5*(edges{ii}(1:end-1)+edges{ii}(2:end));
-% end
-% 
-% % density profile from all shots collated 
-% [ncounts_pal,~]=histcn(vertcat(zxy_avg_shifted{:}),edges{1},edges{2},edges{3});
-% vvoxel=prod(configs.image.voxel_res);       % volume of a voxel [m^3]
-% density_pal=ncounts_pal/(vvoxel*nshot);     % density in voxel [m^-3]
-% 
-% %% summarise density profiles
-% % density in 2D projection
-% density_2d=cell(3,1);   % 2D integrated XY, TY, TX - plane density profiles
-% for ii=1:3
-%     density_2d{ii}=squeeze(sum(density_pal,ii));
-% end
-% 
-% if verbose>0
-%     for ii=1:3
-%         figure();
-%         imagesc(density_2d{ii});
-%         colorbar();
-%     end
-% end
-% 
-% %% 2D slices animation - through X-axis
-% if verbose>0
-%     hfig_density_2d_slice=figure();
-%     
-%     % define objects at the reference frame
-%     X=cents{2}*1e3;     % X-point array for YT slice [mm]
-%     [~,id_ref]=min(abs(X));     % reference at X~=0
-%     
-%     im=imagesc(squeeze(density_pal(:,id_ref,:)));
-%     ht=title(sprintf('X = %0.2f mm', X(id_ref)));
-%     
-%     % set colormap to the reference frame (auto)
-%     f = getframe(gcf);
-%     [~,cmap]=rgb2ind(f.cdata, 256, 'nodither');
-%     
-%     % get figure sizes
-%     pos=get(hfig_density_2d_slice,'Position');
-%     width=pos(3);
-%     height=pos(4);
-%     
-%     % preallocate
-%     mov = zeros(height, width, 1, length(X), 'uint8');
-%     
-%     % Animate and add animation frame to the movie structure
-%     for id = 1:length(X)
-%         % Update XData and YData
-%         set(im,'CData',squeeze(density_pal(:,id,:)));
-%         set(ht, 'String', sprintf('X = %0.2f mm', X(id)));
-%         
-%         % Get frame as an image
-%         f = getframe(gcf);
-%         mov(:,:,1,id) = rgb2ind(f.cdata,cmap,'nodither');
-%     end
-%     
-%     % Create animated GIF
-%     t_gif=3;    % duration of gif
-%     
-%     % save gif
-%     if configs.flags.savedata
-%         imwrite(mov,cmap,[configs.files.dirout,'/density_2d_slice.gif'], 'DelayTime', t_gif/length(X), 'LoopCount', inf);
-%     end
-% end
-
+mov=cell(3,1);
+for ii=1:3
+    hfig_pal_nden2_sl(ii)=figure();
+   
+    % get figure sizes
+    hpos=get(hfig_pal_nden2_sl(ii),'Position');
+    hwidth=hpos(3);
+    hheight=hpos(4);
+    % reference frame (axis zero-intercept)
+    X=cents{ii}*1e3;            % X-point array for YT slice [mm]
+    [~,id_ref]=min(abs(X));     % reference at X~=0
+    % preallocate movie
+    mov{ii}=zeros(hheight,hwidth,1,length(X));
+    
+    %%% set colormap limits for PAL's at reference - !overwritten for different axis
+    cmaplim=cell(pal_nseq,1);
+    for jj=1:pal_nseq
+        % take the slice through given axis
+        this_nden3_dshift=shiftdim(nden3{jj},(ii-1));   % shift 3D matrix dim to slice each direction programmatically
+        this_nden2_slice=squeeze(shiftdim(this_nden3_dshift(id_ref,:,:),mod(-(ii-1),3)));   % get 2D slice through this axis, then reverse the dim shift, squeeze to 2D
+        % draw the image for setting reference colormap
+        imagesc(this_nden2_slice);
+        % set colormap limits to this frame (auto)
+        cmaplim{jj}=minmax(minmax(this_nden2_slice)');
+        cmaplim{jj}=[cmaplim{jj}(1,1),cmaplim{jj}(2,2)];
+    end
+    clf;    % clear graphics objects used for referencing colormap, etc.
+    
+    %%% plot PAL 2d sliced density profile    
+    % get image X,Y axis - NOT CYCLIC
+    ord=[1,2,3];
+    ord_xy=ord([1:ii-1,ii+1:3]);    % pop the integrated dim out
+    
+    % loop thru SLICING AXIS + add frame to the movie structure
+    for id = 1:length(X)
+        % draw this frame - 2D sliced density for each PAL
+        for jj=1:pal_nseq
+            subplot(plot_nrow,plot_ncol,jj);
+            
+            % quick and dirty way to do density plot - imagesc
+            this_nden3_dshift=shiftdim(nden3{jj},(ii-1));
+            this_nden2_slice=squeeze(shiftdim(this_nden3_dshift(id,:,:),mod(-(ii-1),3)));
+            
+            imagesc(cents{ord_xy(2)},cents{ord_xy(1)},this_nden2_slice,cmaplim{jj});
+            set(gca,'YDir','normal');   % orient it the correct way
+        end
+        
+        % get frame as an image
+        f=getframe(gcf);
+        mov{ii}(:,:,1,id)=rgb2ind(f.cdata,256);     % greyscale
+    end
+    
+    % create animated GIF
+    t_gif=3;    % duration of gif [s]
+    
+    % save gif
+    if configs.flags.savedata
+        imwrite(mov{ii},[configs.files.dirout,'/density_2d_slice',int2str(ii),'.gif'], 'DelayTime', t_gif/length(X), 'LoopCount', inf);
+    end
+end
+clear mov;
 
 %% save results
 if configs.flags.savedata
