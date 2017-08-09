@@ -179,31 +179,6 @@ if verbose>0
 end
 
 
-% % centre PAL to mean position (in fact this isn't used since it reduces
-% % fringe visibility!)
-% zxy_cent=cellfun(@(x) mean(x,1), zxy, 'UniformOutput', false);
-% zxy_cent=vertcat(zxy_cent{:});
-% zxy_cent_std=std(zxy_cent,1);
-% 
-% zxy0=cell(nshot,1);
-% for ii=1:nshot
-%     zxy0{ii}=zxy{ii}-repmat(zxy_cent(ii,:),[size(zxy{ii},1),1]);
-% end
-% 
-% % check centered
-% if verbose>0
-%     hfig_pal_cent=figure();
-%     plot_zxy(zxy0,3e4,1,'k');
-%     axis equal;
-%     view(90,0);
-% end
-% 
-% % study in oscillation cancellation with fringe visibility
-% % does oscillation cancellation affect fringe visibility? YES!
-% zxy_cent_avg=mean(zxy_cent,1);      % average zxy center in PAL
-% zxy_avg_shifted=cellfun(@(x) x-repmat(zxy_cent_avg,[size(x,1),1]),zxy,'UniformOutput',false);
-% 
-
 %% Process PAL
 %%% Evaluate atom numbers
 % number in PAL
@@ -235,6 +210,9 @@ fitobject=fitnlm(n_i,pal_n(n_i,1),modelfun,param0,...
 paramfit=[fitobject.Coefficients.Estimate,fitobject.Coefficients.SE];
 fitval.x=1:pal_nseq;
 fitval.y=feval(fitobject,fitval.x);
+
+% get number in BEC
+bec_n=paramfit(1,1)*(1-paramfit(2,1)).^(1:pal_nseq);
 
 % summarise
 linewidth=1.5;
