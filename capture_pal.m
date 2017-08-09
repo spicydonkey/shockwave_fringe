@@ -15,7 +15,7 @@ pal=cell(n,1);
 % capture pulses
 for ii=1:n
     % build temporal window to capture PAL
-    t_i=t1+ii*dt-0.5*dt;
+    t_i=t1+(ii-1)*dt-0.5*dt;
     t_f=t_i+dt;     % window size is same as pulse period
     
     % capture in 1D t-window
