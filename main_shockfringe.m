@@ -30,7 +30,7 @@ configs.load.window{1}=[0.45,0.7];      % T [s] include all PALs
 configs.load.window{2}=[-5e-3,10e-3];    % X [m]
 configs.load.window{3}=[-20e-3,30e-3];    % Y [m]
 
-configs.image.voxel_res=1e-4*[0.33,1,1];   % ZXY voxel resolution [m]
+configs.image.voxel_res=2e-4*[1,1,1];   % ZXY voxel resolution [m]
 configs.image.size=[-30e-3,40e-3;-5e-3,5e-3; -25e-3,25e-3];   % image size/lims [T;X;Y] [m]
 
 % PAL
@@ -235,7 +235,24 @@ if verbose>0
     ylabel('Number in PAL');
 end
 
-%%
+%% PAL density image
+%%% configure voxels
+% construct edge/center vectors for each dim
+edges=cell(3,1);
+cents=cell(3,1);
+for ii=1:3
+    edges{ii}=configs.image.size(ii,1):configs.image.voxel_res(ii):configs.image.size(ii,2);
+    cents{ii}=0.5*(edges{ii}(1:end-1)+edges{ii}(2:end));
+end
+
+%%% 3D density profile (full)
+nden3=cellfun(@(x) density3d(x,edges),pal_zxy0,'UniformOutput',false);
+
+%%% 2D projection
+
+%%% 2D slices
+
+
 % %% PAL density image
 % % construct edge/center vectors for each dim
 % edges=cell(3,1);
