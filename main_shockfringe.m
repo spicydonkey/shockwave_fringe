@@ -9,6 +9,7 @@ configs.flags.graphics=1;
 configs.flags.build_txy=1;
 
 configs.misc.vel_z=9.8*0.416;    % atom free-fall vert v at detector hit for T-to-Z conversion;
+configs.misc.det_qe=0.1;
 
 configs.files.path='C:\Users\HE BEC\Documents\lab\shockwave\20170716_atomlaser\d';
 
@@ -16,21 +17,27 @@ configs.files.dir_data=fileparts(configs.files.path);    % fullpath to data dire
 configs.files.archive=fullfile(configs.files.dir_data,'archive');   % dir to archive folder
 configs.files.dirout=fullfile(configs.files.dir_data,'output');      % output directory (will be time-stamped)
 
-configs.load.version=1;         % TXY load stage version number
+configs.load.version=1.1;         % TXY load stage version number
 
-configs.load.id=1:3615;         % file id numbers to use for analysis
-configs.load.mincount=0;         % min counts in window - 0 for no min
+configs.load.id=1:100;         % file id numbers to use for analysis
+configs.load.mincount=1000;         % min counts in window - 0 for no min
 configs.load.maxcount=Inf;          % max counts in window - Inf for no max
 
 configs.load.rot_angle=0.61;    % detector/trap alignment
 
 % construct window for ROI
-configs.load.window{1}=[0.46,0.481];      % T [s]
+configs.load.window{1}=[0.45,0.7];      % T [s] include all PALs
 configs.load.window{2}=[-5e-3,10e-3];    % X [m]
 configs.load.window{3}=[-20e-3,30e-3];    % Y [m]
 
 configs.image.voxel_res=1e-4*[0.33,1,1];   % ZXY voxel resolution [m]
 configs.image.size=[-30e-3,40e-3;-5e-3,5e-3; -25e-3,25e-3];   % image size/lims [T;X;Y] [m]
+
+% PAL
+configs.pal.t1=0.4658;      % estimated from the first pal flux peak on DLD front panel
+configs.pal.dt=0.0212;      % estimated from peak diff of first and second
+configs.pal.n=10;
+
 
 %% initialise
 do_next=configs.flags.force_all_stages;
@@ -39,6 +46,7 @@ t_main_start=tic;   % for reporting process duration
 datetimestr=datestr(datetime,'yyyymmdd_HHMMSS');    % timestamp when function called
 configs.files.dirout=[configs.files.dirout,'_',datetimestr];
 vz=configs.misc.vel_z;
+det_qe=configs.misc.det_qe;
 HFIG={};        % cell array for all figures generated
 
 if configs.flags.savedata
@@ -114,103 +122,213 @@ zxy=cellfun(@(x) double(x.*repmat([vz,1,1],[size(x,1),1])),txy,'UniformOutput',f
 
 % check loaded data
 if verbose>0
-    hfig_pal=figure();
+    hfig_all=figure();
     plot_zxy(zxy,3e4,1,'k');
     axis equal;
     view(90,0);
 end
 
-% centre PAL to mean position (in fact this isn't used since it reduces
-% fringe visibility!)
-zxy_cent=cellfun(@(x) mean(x,1), zxy, 'UniformOutput', false);
-zxy_cent=vertcat(zxy_cent{:});
-zxy_cent_std=std(zxy_cent,1);
+% get PAL
+% build config
+pal_z1=configs.pal.t1*vz;
+pal_dz=configs.pal.dt*vz;
+pal_nseq=configs.pal.n;
 
-zxy0=cell(nshot,1);
-for ii=1:nshot
-    zxy0{ii}=zxy{ii}-repmat(zxy_cent(ii,:),[size(zxy{ii},1),1]);
+pal_zxy=capture_pal(zxy,pal_z1,pal_dz,pal_nseq);
+
+%%% centre PAL to a common mean position
+%   NOTE: centering each PAL in shot to mean position reduces fringe
+%   visibility, most likely from asymmetry of PAL and shot-to-shot N
+%   fluctuation
+
+% get centre
+pal_cent_avg=zeros(pal_nseq,3);
+pal_cent_std=zeros(pal_nseq,3);
+for ii=1:pal_nseq
+    % use mean of each shot's centre as an approximation to the shot collated
+    % mean position
+    this_pal_cent_array=cellfun(@(x) mean(x,1),pal_zxy{ii},'UniformOutput',false);
+    this_pal_cent_array=vertcat(this_pal_cent_array{:});    % form into nshotx3 array
+    
+    pal_cent_avg(ii,:)=mean(this_pal_cent_array,1);     % average zxy center in this pulse
+    pal_cent_std(ii,:)=std(this_pal_cent_array,1);      % uncertainty in the mean centre position
 end
 
-% check centered
+% centre PAL
+pal_zxy0=cell(pal_nseq,1);     % preallocate centered PAL array
+for ii=1:pal_nseq
+    % shift to evaluated centre
+    pal_zxy0{ii}=cellfun(@(x) x-repmat(pal_cent_avg(ii,:),[size(x,1),1]),pal_zxy{ii},'UniformOutput',false);
+end
+
+% summarise captured PALs
 if verbose>0
-    hfig_pal_cent=figure();
-    plot_zxy(zxy0,3e4,1,'k');
-    axis equal;
-    view(90,0);
-end
-
-% study in oscillation cancellation with fringe visibility
-% does oscillation cancellation affect fringe visibility? YES!
-zxy_cent_avg=mean(zxy_cent,1);      % average zxy center in PAL
-zxy_avg_shifted=cellfun(@(x) x-repmat(zxy_cent_avg,[size(x,1),1]),zxy,'UniformOutput',false);
-
-%% PAL density image
-% construct edge/center vectors for each dim
-edges=cell(3,1);
-cents=cell(3,1);
-for ii=1:3
-    edges{ii}=configs.image.size(ii,1):configs.image.voxel_res(ii):configs.image.size(ii,2);
-    cents{ii}=0.5*(edges{ii}(1:end-1)+edges{ii}(2:end));
-end
-
-% density profile from all shots collated 
-[ncounts_pal,~]=histcn(vertcat(zxy_avg_shifted{:}),edges{1},edges{2},edges{3});
-vvoxel=prod(configs.image.voxel_res);       % volume of a voxel [m^3]
-density_pal=ncounts_pal/(vvoxel*nshot);     % density in voxel [m^-3]
-
-%% summarise density profiles
-% density in 2D projection
-density_2d=cell(3,1);   % 2D integrated XY, TY, TX - plane density profiles
-for ii=1:3
-    density_2d{ii}=squeeze(sum(density_pal,ii));
-end
-
-if verbose>0
-    for ii=1:3
-        figure();
-        imagesc(density_2d{ii});
-        colorbar();
+    hfig_pal=figure();
+    plot_ncol=ceil(sqrt(pal_nseq));
+    plot_nrow=ceil(pal_nseq/plot_ncol);
+    for ii=1:pal_nseq
+        subplot(plot_nrow,plot_ncol,ii);
+        plot_zxy(pal_zxy0{ii},1e4,1,'k');
+        view(90,0);
+        axis equal;
+        axis tight;
+        box on;
+        ht=sprintf('PAL: %d',ii);
+        title(ht);
     end
 end
 
-%% 2D slices animation - through X-axis
-if verbose>0
-    hfig_density_2d_slice=figure();
-    
-    % define objects at the reference frame
-    X=cents{2}*1e3;     % X-point array for YT slice [mm]
-    [~,id_ref]=min(abs(X));     % reference at X~=0
-    
-    im=imagesc(squeeze(density_pal(:,id_ref,:)));
-    ht=title(sprintf('X = %0.2f mm', X(id_ref)));
-    
-    % set colormap to the reference frame (auto)
-    f = getframe(gcf);
-    [~,cmap]=rgb2ind(f.cdata, 256, 'nodither');
-    
-    % get figure sizes
-    pos=get(hfig_density_2d_slice,'Position');
-    width=pos(3);
-    height=pos(4);
-    
-    % preallocate
-    mov = zeros(height, width, 1, length(X), 'uint8');
-    
-    % Animate and add animation frame to the movie structure
-    for id = 1:length(X)
-        % Update XData and YData
-        set(im,'CData',squeeze(density_pal(:,id,:)));
-        set(ht, 'String', sprintf('X = %0.2f mm', X(id)));
-        
-        % Get frame as an image
-        f = getframe(gcf);
-        mov(:,:,1,id) = rgb2ind(f.cdata, cmap, 'nodither');
-    end
-    
-    % Create animated GIF
-    t_gif=3;    % duration of gif
-    imwrite(mov, cmap, 'density_2d_slice.gif', 'DelayTime', t_gif/length(X), 'LoopCount', inf);
+
+% % centre PAL to mean position (in fact this isn't used since it reduces
+% % fringe visibility!)
+% zxy_cent=cellfun(@(x) mean(x,1), zxy, 'UniformOutput', false);
+% zxy_cent=vertcat(zxy_cent{:});
+% zxy_cent_std=std(zxy_cent,1);
+% 
+% zxy0=cell(nshot,1);
+% for ii=1:nshot
+%     zxy0{ii}=zxy{ii}-repmat(zxy_cent(ii,:),[size(zxy{ii},1),1]);
+% end
+% 
+% % check centered
+% if verbose>0
+%     hfig_pal_cent=figure();
+%     plot_zxy(zxy0,3e4,1,'k');
+%     axis equal;
+%     view(90,0);
+% end
+% 
+% % study in oscillation cancellation with fringe visibility
+% % does oscillation cancellation affect fringe visibility? YES!
+% zxy_cent_avg=mean(zxy_cent,1);      % average zxy center in PAL
+% zxy_avg_shifted=cellfun(@(x) x-repmat(zxy_cent_avg,[size(x,1),1]),zxy,'UniformOutput',false);
+% 
+
+%% Process PAL
+%%% Evaluate atom numbers
+% number in PAL
+pal_n=zeros(pal_nseq,2);    % preallocate; format: [avg, std]
+for ii=1:pal_nseq
+    this_pal_n=cellfun(@(x) size(x,1),pal_zxy0{ii});    % number in nth PAL 'detected'
+    pal_n(ii,:)=(1/det_qe)*[mean(this_pal_n),std(this_pal_n)];      % estimate actual number in PAL
 end
+
+%%%% fit to estimate number in condensate (N0) and outcoupling efficiency
+% (eff_oc)
+n_i=2:pal_nseq;     % TODO pulse numbers to use - don't use sat'd
+param0=[1e5,0.1];   % estimate for initial param
+
+modelfun='y~N0*(1-r)^(x1-1)*r';     % x1: PAL index; N0: BEC number; r: outcoupling frac; y: number in x1^th PAL; 
+coeffnames={'N0','r'};
+
+% define optimiser
+fo = statset('TolFun',10^-6,...
+    'TolX',10^-6,...
+    'MaxIter',10^6,...
+    'UseParallel',0);
+
+% do the fit
+fitobject=fitnlm(n_i,pal_n(n_i,1),modelfun,param0,...
+    'CoefficientNames',coeffnames,'Options',fo);
+
+% get fit results
+paramfit=[fitobject.Coefficients.Estimate,fitobject.Coefficients.SE];
+fitval.x=1:pal_nseq;
+fitval.y=feval(fitobject,fitval.x);
+
+% summarise
+linewidth=1.5;
+namearray={'LineWidth','MarkerFaceColor','Color'};      % error bar graphics properties
+valarray={linewidth,'w','k'};                 % 90 deg (normal) data
+if verbose>0
+    hfig_atom_number=figure();
+    % plot data
+    hdata_pal_n=ploterr(1:pal_nseq,pal_n(:,1),[],pal_n(:,2),'o','hhxy',0);
+    set(hdata_pal_n(1),namearray,valarray,'DisplayName','Data');
+    set(hdata_pal_n(2),namearray,valarray,'DisplayName','');
+    
+    hold on;
+    % plot fit
+    hfit=plot(fitval.x,fitval.y,'r*','DisplayName','Fit');
+    
+    % annotate
+    legend([hdata_pal_n(1),hfit]);
+    xlabel('Pulse number');
+    ylabel('Number in PAL');
+end
+
+%%
+% %% PAL density image
+% % construct edge/center vectors for each dim
+% edges=cell(3,1);
+% cents=cell(3,1);
+% for ii=1:3
+%     edges{ii}=configs.image.size(ii,1):configs.image.voxel_res(ii):configs.image.size(ii,2);
+%     cents{ii}=0.5*(edges{ii}(1:end-1)+edges{ii}(2:end));
+% end
+% 
+% % density profile from all shots collated 
+% [ncounts_pal,~]=histcn(vertcat(zxy_avg_shifted{:}),edges{1},edges{2},edges{3});
+% vvoxel=prod(configs.image.voxel_res);       % volume of a voxel [m^3]
+% density_pal=ncounts_pal/(vvoxel*nshot);     % density in voxel [m^-3]
+% 
+% %% summarise density profiles
+% % density in 2D projection
+% density_2d=cell(3,1);   % 2D integrated XY, TY, TX - plane density profiles
+% for ii=1:3
+%     density_2d{ii}=squeeze(sum(density_pal,ii));
+% end
+% 
+% if verbose>0
+%     for ii=1:3
+%         figure();
+%         imagesc(density_2d{ii});
+%         colorbar();
+%     end
+% end
+% 
+% %% 2D slices animation - through X-axis
+% if verbose>0
+%     hfig_density_2d_slice=figure();
+%     
+%     % define objects at the reference frame
+%     X=cents{2}*1e3;     % X-point array for YT slice [mm]
+%     [~,id_ref]=min(abs(X));     % reference at X~=0
+%     
+%     im=imagesc(squeeze(density_pal(:,id_ref,:)));
+%     ht=title(sprintf('X = %0.2f mm', X(id_ref)));
+%     
+%     % set colormap to the reference frame (auto)
+%     f = getframe(gcf);
+%     [~,cmap]=rgb2ind(f.cdata, 256, 'nodither');
+%     
+%     % get figure sizes
+%     pos=get(hfig_density_2d_slice,'Position');
+%     width=pos(3);
+%     height=pos(4);
+%     
+%     % preallocate
+%     mov = zeros(height, width, 1, length(X), 'uint8');
+%     
+%     % Animate and add animation frame to the movie structure
+%     for id = 1:length(X)
+%         % Update XData and YData
+%         set(im,'CData',squeeze(density_pal(:,id,:)));
+%         set(ht, 'String', sprintf('X = %0.2f mm', X(id)));
+%         
+%         % Get frame as an image
+%         f = getframe(gcf);
+%         mov(:,:,1,id) = rgb2ind(f.cdata,cmap,'nodither');
+%     end
+%     
+%     % Create animated GIF
+%     t_gif=3;    % duration of gif
+%     
+%     % save gif
+%     if configs.flags.savedata
+%         imwrite(mov,cmap,[configs.files.dirout,'/density_2d_slice.gif'], 'DelayTime', t_gif/length(X), 'LoopCount', inf);
+%     end
+% end
 
 
 %% save results
