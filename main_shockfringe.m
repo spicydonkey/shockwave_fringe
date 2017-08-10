@@ -31,7 +31,7 @@ configs.load.window{1}=[0.45,0.7];      % T [s] include all PALs
 configs.load.window{2}=[-5e-3,10e-3];    % X [m]
 configs.load.window{3}=[-20e-3,30e-3];    % Y [m]
 
-configs.image.voxel_res=2e-4*[1,1,1];   % ZXY voxel resolution [m]
+configs.image.voxel_res=1e-4*[1,1,1];   % ZXY voxel resolution [m]
 configs.image.size=[-30e-3,40e-3;-5e-3,5e-3; -25e-3,25e-3];   % image size/lims [T;X;Y] [m]
 
 % PAL
@@ -137,6 +137,8 @@ pal_dz=configs.pal.dt*vz;
 pal_nseq=configs.pal.n;
 
 pal_zxy=capture_pal(zxy,pal_z1,pal_dz,pal_nseq);
+
+clearvars zxy;      % delete zxy - not used from here
 
 %%% centre PAL to a common mean position
 %   NOTE: centering each PAL in shot to mean position reduces fringe
