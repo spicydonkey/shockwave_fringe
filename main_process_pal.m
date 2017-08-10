@@ -43,7 +43,8 @@ for pal_id=1:pal_nseq
     subplot(plot_nrow,plot_ncol,pal_id);
     imagesc(yrot_c,zrot_c,nn);
     set(gca,'YDir','normal');
-    axis equal;
+    axis equal; axis tight; 
+    title(sprintf('%d',pal_id));
     
     %%% take line profile of the density thru Y-axis at X=0
     [~,id_x0]=min(abs(yrot_c));
