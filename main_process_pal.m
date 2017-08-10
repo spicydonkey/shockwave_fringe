@@ -8,6 +8,7 @@ profile_width=0.5e-3;   % 1d profile perpendicularly [m]
 % preallocate
 nn1d=cell(pal_nseq,1);      % 1D density profile
 
+hfig_ndenrot=figure();
 hfig_ndenraw=figure();  
 plot_ncol=ceil(sqrt(pal_nseq));         % configure subplots layout
 plot_nrow=ceil(pal_nseq/plot_ncol);
@@ -37,13 +38,12 @@ for pal_id=1:pal_nseq
     
     nn=density2d(pal_xrot,{yrot_ed,zrot_ed})';      % needs to be transposed
     
-    % % visualise
-    % hfig_ndenrot=figure();
-    % imagesc(yrot_c,zrot_c,nn);
-    % set(gca,'YDir','normal');
-    % axis equal;
-    % xlabel('Y');
-    % ylabel('Z');
+    % plot 2D projected density profile
+    figure(hfig_ndenrot);
+    subplot(plot_nrow,plot_ncol,pal_id);
+    imagesc(yrot_c,zrot_c,nn);
+    set(gca,'YDir','normal');
+    axis equal;
     
     %%% take line profile of the density thru Y-axis at X=0
     [~,id_x0]=min(abs(yrot_c));
@@ -63,6 +63,13 @@ for pal_id=1:pal_nseq
     imagesc(yrot_c(id_x),zrot_c(id_y),nn_raw);
     set(gca,'YDir','normal');
     title(sprintf('%d',pal_id));
+    
+    % draw rectangle for ROI on 2D density plot
+    figure(hfig_ndenrot);
+    subplot(plot_nrow,plot_ncol,pal_id);
+    hold on;
+    pos_roi=[min(yrot_c(id_x)),min(zrot_c(id_y)),max(yrot_c(id_x)),max(zrot_c(id_y))];     % build rectangle: 2 corners
+    rectangle('Position',pos_roi,'EdgeColor','w');
     
     % 1D density profile
     figure(hfig_nden1d);
