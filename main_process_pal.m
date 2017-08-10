@@ -8,6 +8,9 @@ profile_width=0.5e-3;   % 1d profile perpendicularly [m]
 % preallocate
 nn1d=cell(pal_nseq,1);      % 1D density profile
 
+hfig_ndenraw=figure();  
+plot_ncol=ceil(sqrt(pal_nseq));         % configure subplots layout
+plot_nrow=ceil(pal_nseq/plot_ncol);
 hfig_nden1d=figure();
 cc=distinguishable_colors(pal_nseq);        % colors
 for pal_id=1:pal_nseq
@@ -49,19 +52,31 @@ for pal_id=1:pal_nseq
     id_y=find(zrot_c>=0&zrot_c<0.02);           % y-indices ROI
     
     %%% prepare 1D density profile through shockwave
-    nn1d_temp=nn(id_y,id_x);            % 1d profile
-    nn1d_temp=mean(nn1d_temp,2);        % integrate thru perpendicular dir
+    nn_raw=nn(id_y,id_x);            % raw density in region of interest
+    nn1d_temp=mean(nn_raw,2);        % integrate thru perpendicular dir
     nn1d{pal_id}=smooth(nn1d_temp,5);      % simple smoothing - moving average
     
-    % plot
+    %%% plot result
+    % raw density in region of interest
+    figure(hfig_ndenraw);
+    subplot(plot_nrow,plot_ncol,pal_id);
+    imagesc(yrot_c(id_x),zrot_c(id_y),nn_raw);
+    set(gca,'YDir','normal');
+    title(sprintf('%d',pal_id));
+    
+    % 1D density profile
     figure(hfig_nden1d);
     hold on;
-    
     plot(zrot_c(id_y),nn1d{pal_id},...
         'DisplayName',sprintf('%d: %0.2g, %0.2g',pal_id,fitval.y(pal_id),bec_n(pal_id)),...
         'LineWidth',1.5,'color',cc(pal_id,:));
 end
-% annotate figure
+%%% annotate figures
+% raw density in region of interest
+figure(hfig_ndenraw);
+
+% 1D density profile
+figure(hfig_nden1d);
 lgd=legend('show');
 title(lgd,'PAL: $n_{AL}$, $N_0$');
 box on;
