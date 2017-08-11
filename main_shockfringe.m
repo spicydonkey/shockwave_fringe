@@ -2,7 +2,7 @@ clear all;
 
 %% configs
 configs.flags.verbose=1;
-configs.flags.savedata=1;
+configs.flags.savedata=0;
 configs.flags.archive_txy=1;
 configs.flags.force_all_stages=0;
 configs.flags.graphics=1;
@@ -20,7 +20,7 @@ configs.files.dirout=fullfile(configs.files.dir_data,'output');      % output di
 
 configs.load.version=1.1;         % TXY load stage version number
 
-configs.load.id=1:3615;         % file id numbers to use for analysis
+configs.load.id=1:1000;         % file id numbers to use for analysis
 configs.load.mincount=1000;         % min counts in window - 0 for no min
 configs.load.maxcount=Inf;          % max counts in window - Inf for no max
 
@@ -85,6 +85,7 @@ if ~do_next
                 % success! this is the data to be loaded
                 warning('Loading TXY: Match found in archive. Loading %s.',[configs.files.archive,'/',this_file]);
                 load([configs.files.archive,'/',this_file],'txy','fout');
+
                 do_next=0;      % skip full stage
                 break
             end
@@ -214,11 +215,12 @@ fitobject=fitnlm(n_i,pal_n(n_i,1),modelfun,param0,...
 
 % get fit results
 paramfit=[fitobject.Coefficients.Estimate,fitobject.Coefficients.SE];
-fitval.x=1:pal_nseq;
-fitval.y=feval(fitobject,fitval.x);
+Npal_fit.x=1:pal_nseq;
+Npal_fit.y=feval(fitobject,Npal_fit.x);
+Nal=Npal_fit.y;
 
 % get number in BEC
-bec_n=(paramfit(1,1)*(1-paramfit(2,1)).^(1:pal_nseq))';
+N0=(paramfit(1,1)*(1-paramfit(2,1)).^(1:pal_nseq))';
 
 % summarise
 linewidth=1.5;
@@ -233,7 +235,7 @@ if verbose>0
     
     hold on;
     % plot fit
-    hfit=plot(fitval.x,fitval.y,'r*','DisplayName','Fit');
+    hfit=plot(Npal_fit.x,Nal,'r*','DisplayName','Fit');
     
     % annotate
     legend([hdata_pal_n(1),hfit]);
@@ -288,7 +290,7 @@ if verbose>0
             % annotate
             axis equal;
             box on;
-            ht=sprintf('(%d) %0.2g',jj,fitval.y(jj));
+            ht=sprintf('(%d) %0.2g',jj,Nal(jj));
             title(ht);
         end
     end
