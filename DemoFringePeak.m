@@ -4,9 +4,13 @@
 % load line profile
 d_1d=zrot_c(id_y);     % distance along line
 
+% background smoothing
+n_sm_bgd=15;
+n_sm_post=10;
+
 % peak detection algorithm
 SlopeThreshold=1e-4;
-AmpThreshold=0.15;
+AmpThreshold=0.1;
 smoothwidth=0;          % 0 to no smoothing in peak finding
 peakgroup=5;
 smoothtype=1;   % smoothing is off
@@ -20,17 +24,24 @@ hfig_peaks=figure();
 p=zeros(10,1);
 cc=distinguishable_colors(pal_nseq);        % for plotting per PAL #
 
-% find peaks!
+%% preprocess fringes
+% background subtraction
+n1d_bgd=cellfun(@(x) smooth(x,n_sm_bgd),nn1d,'UniformOutput',false);    % background from smoothing - moving average
+dn1d=cellfun(@(x,y) x-y,nn1d,n1d_bgd,'UniformOutput',false);        % background subtracted density profile
+% additional smoothing on diff density fringes
+dn1d=cellfun(@(x) smooth(x,n_sm_post),dn1d,'UniformOutput',false);
+
+%% Find peaks
 for ii=1:pal_nseq
-    n=nn1d{ii};         % 1D density profile along line
+    n=dn1d{ii};         % 1D density profile along line
     n=n/max(n);         % normalise density; max=1
     
-    this_peak_list=findpeaksG(d_1d,n,SlopeThreshold,AmpThreshold,smoothwidth,peakgroup,smoothtype);
+    this_peak_list=findpeaksG(1e3*d_1d,n,SlopeThreshold,AmpThreshold,smoothwidth,peakgroup,smoothtype);
     peak_list{ii}=this_peak_list;
     
     figure(hfig_peaks);
     hold on;
-    p(ii)=plot(d_1d,n,'color',cc(ii,:),'LineWidth',1.5,'DisplayName',sprintf('%d',ii));
+    p(ii)=plot(1e3*d_1d,n,'color',cc(ii,:),'LineWidth',1.5,'DisplayName',sprintf('%d',ii));
     scatter(this_peak_list(:,2),this_peak_list(:,3),'o','MarkerEdgeColor',cc(ii,:));
     text(this_peak_list(:,2),this_peak_list(:,3),num2str(this_peak_list(:,1)),...
         'Color',cc(ii,:),'FontSize',15);  % annotate peaks
@@ -41,9 +52,10 @@ end
 % annotate figures
 figure(hfig_peaks);
 box on;
-xlabel('distance [m]');
-ylabel('density [arb]');
-legend(p);
+xlabel('distance [mm]');
+ylabel('density fluctuation from moving average [arb]');
+lgd=legend(p);
+title(lgd,'PAL');
 
 % collate peak data
 max_peak_n=max(cellfun(@(x)size(x,2),ppeak));       % max number of peaks found in PALs
