@@ -16,12 +16,11 @@ peakgroup=5;
 smoothtype=1;   % smoothing is off
 
 % preallocate
-peak_list=cell(pal_nseq,1);         % full peak summary output from findpeaksG
-ppeak=cell(pal_nseq,1);         % peak locations for each PAL
-dppeak=cell(pal_nseq,1);        % peak spacing
+peak_list=cell(pal_nseq,1);     % full peak summary output from findpeaksG
+ppeak=cell(pal_nseq,1);         % peak locations for each PAL [mm]
+dppeak=cell(pal_nseq,1);        % peak spacing [mm]
 
 hfig_peaks=figure();
-p=zeros(10,1);
 cc=distinguishable_colors(pal_nseq);        % for plotting per PAL #
 
 %% preprocess fringes
@@ -32,6 +31,7 @@ dn1d=cellfun(@(x,y) x-y,nn1d,n1d_bgd,'UniformOutput',false);        % background
 dn1d=cellfun(@(x) smooth(x,n_sm_post),dn1d,'UniformOutput',false);
 
 %% Find peaks
+p=zeros(10,1);  % array to store figure objects for selective legend
 for ii=1:pal_nseq
     n=dn1d{ii};         % 1D density profile along line
     n=n/max(n);         % normalise density; max=1
@@ -77,7 +77,7 @@ for ii=1:pal_nseq
 end
 box on;
 xlabel('$n$');
-ylabel('$n$-th peak spacing [m]');
+ylabel('$n$-th peak spacing [mm]');
 
 % peak spacing dependence on PAL
 hfig_dppeaks_vs_pal=figure();
@@ -96,24 +96,35 @@ for ipeak=1:max_peak_n-1
     end
 end
 
-% peak spacing dependance on PAL population
+%% peak spacing dependance on PAL population
+linewidth=1.5;
+namearray={'LineWidth','MarkerFaceColor'};      % error bar graphics properties
+valarray={linewidth,'w'};                 % 90 deg (normal) data
+
 hfig_dpeak_vs_Npal=figure();
+p=zeros(1,(max_peak_n-1));      % array to store figure objects for selective legend
 for ii=1:(max_peak_n-1)
     hold on;
-    plot(Nal,1e3*peak_diff(:,ii),...
-        'o','Color',cc(ii,:),'DisplayName',sprintf('%d',ii));
+%     plot(Nal,peak_diff(:,ii),...
+%         'o','Color',cc(ii,:),'DisplayName',sprintf('%d',ii));
+    
+    hdata_pal_n=ploterr(Nal,peak_diff(:,ii),pal_n(:,2),[],'o','hhxy',0);
+    set(hdata_pal_n(1),namearray,valarray,'Color',cc2(ii,:),'DisplayName',sprintf('%d',ii));
+    set(hdata_pal_n(2),namearray,valarray,'Color',cc2(ii,:),'DisplayName','');
+    p(ii)=hdata_pal_n(1);
 end
 box on;
-lgd=legend('show');
+lgd=legend(p);
+% lgd=legend('show');
 title(lgd,'Fringe spacing');
 xlabel('$N_{AL}$');
 ylabel('Fringe spacing [mm]');
 
-% peak spacing dependance on BEC population
+%% peak spacing dependance on BEC population
 hfig_dpeak_vs_Nbec=figure();
 for ii=1:(max_peak_n-1)
         hold on;
-    plot(N0,1e3*peak_diff(:,ii),...
+    plot(N0,peak_diff(:,ii),...
         'o','Color',cc(ii,:),'DisplayName',sprintf('%d',ii));
 end
 box on;
