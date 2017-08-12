@@ -1,8 +1,8 @@
 %% Process PAL to analyse 1D density fringes through the jet
 %%% configure
-fringe_cfg.offset=[0,-0.005];       % yz translation for centering transformation
-fringe_cfg.theta=0.7;               % rotation angle around x-axis (rad) - to align fringes in vertical Y-axis
-fringe_cfg.width=0.5e-3;            % 1d profile perpendicularly [m]
+fringe_cfg.offset=[0,-0.006];       % yz translation for centering transformation
+fringe_cfg.theta=1.1;               % rotation angle around x-axis (rad) - to align fringes in vertical Y-axis
+fringe_cfg.width=2e-3;            % 1d profile perpendicularly [m]
 
 % preallocate
 nn1d=cell(pal_nseq,1);      % 1D density profile
@@ -68,13 +68,17 @@ for pal_id=1:pal_nseq
     figure(hfig_ndenrot);
     subplot(plot_nrow,plot_ncol,pal_id);
     hold on;
-    pos_roi=[min(yrot_c(id_x)),min(zrot_c(id_y)),max(yrot_c(id_x)),max(zrot_c(id_y))];     % build rectangle: 2 corners
+    roi_x=min(yrot_c(id_x));    % rectange bottom left corner
+    roi_y=min(zrot_c(id_y));
+    roi_w=diff(minmax(yrot_c(id_x)));
+    roi_h=diff(minmax(zrot_c(id_y)));
+    pos_roi=[roi_x,roi_y,roi_w,roi_h];      % draw rectangle
     rectangle('Position',pos_roi,'EdgeColor','w');
     
     % 1D density profile
     figure(hfig_nden1d);
     hold on;
-    plot(zrot_c(id_y),nn1d{pal_id},...
+    plot(1e3*zrot_c(id_y),nn1d{pal_id},...
         'DisplayName',sprintf('%d: %0.2g, %0.2g',pal_id,Nal(pal_id),N0(pal_id)),...
         'LineWidth',1.5,'color',cc(pal_id,:));
 end
@@ -85,7 +89,7 @@ figure(hfig_ndenraw);
 % 1D density profile
 figure(hfig_nden1d);
 lgd=legend('show');
-title(lgd,'PAL: $n_{AL}$, $N_0$');
+title(lgd,'PAL: $N_{AL}$, $N_0$');
 box on;
-xlabel('distance [m]');
+xlabel('distance [mm]');
 ylabel('density [arb]');

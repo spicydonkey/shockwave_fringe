@@ -2,7 +2,7 @@ clear all;
 
 %% configs
 configs.flags.verbose=1;
-configs.flags.savedata=0;
+configs.flags.savedata=1;
 configs.flags.archive_txy=1;
 configs.flags.force_all_stages=0;
 configs.flags.graphics=1;
@@ -12,7 +12,8 @@ configs.flags.build_txy=1;
 configs.misc.vel_z=9.8*0.416;    % atom free-fall vert v at detector hit for T-to-Z conversion;
 configs.misc.det_qe=0.1;
 
-configs.files.path='C:\Users\HE BEC\Documents\lab\shockwave\20170716_atomlaser\d';
+% configs.files.path='C:\Users\HE BEC\Documents\lab\shockwave\20170716_atomlaser\d';
+configs.files.path='C:\Users\David\Documents\hebec\shockwave\data\d';
 
 configs.files.dir_data=fileparts(configs.files.path);    % fullpath to data directory
 configs.files.archive=fullfile(configs.files.dir_data,'archive');   % dir to archive folder
@@ -20,7 +21,7 @@ configs.files.dirout=fullfile(configs.files.dir_data,'output');      % output di
 
 configs.load.version=1.1;         % TXY load stage version number
 
-configs.load.id=1:1000;         % file id numbers to use for analysis
+configs.load.id=1:500;         % file id numbers to use for analysis
 configs.load.mincount=1000;         % min counts in window - 0 for no min
 configs.load.maxcount=Inf;          % max counts in window - Inf for no max
 
