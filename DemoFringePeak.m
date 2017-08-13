@@ -139,17 +139,17 @@ if vgraph>0
     ylabel('Fringe spacing [mm]');
 end
 
-%% peak spacing dependance on BEC population
-if vgraph>0
-    hfig_dpeak_vs_Nbec=figure();
-    for ii=1:(max_peak_n-1)
-        hold on;
-        plot(N0,peak_diff(:,ii),...
-            'o','Color',cc(ii,:),'DisplayName',sprintf('%d',ii));
-    end
-    box on;
-    lgd=legend('show');
-    title(lgd,'Fringe spacing');
-    xlabel('$N_{0}$');
-    ylabel('Fringe spacing [mm]');
-end
+% %% peak spacing dependance on BEC population
+% if vgraph>0
+%     hfig_dpeak_vs_Nbec=figure();
+%     for ii=1:(max_peak_n-1)
+%         hold on;
+%         plot(N0,peak_diff(:,ii),...
+%             'o','Color',cc(ii,:),'DisplayName',sprintf('%d',ii));
+%     end
+%     box on;
+%     lgd=legend('show');
+%     title(lgd,'Fringe spacing');
+%     xlabel('$N_{0}$');
+%     ylabel('Fringe spacing [mm]');
+% end

@@ -1,9 +1,7 @@
-clear all;
-
 %% configs
-configs.flags.verbose=1;
+configs.flags.verbose=0;
 configs.flags.savedata=0;
-configs.flags.archive_txy=1;
+configs.flags.archive_txy=0;
 configs.flags.force_all_stages=0;
 configs.flags.graphics=1;
 configs.flags.build_txy=1;
@@ -379,11 +377,79 @@ end
 clearvars nden3;
 
 
-%% process PAL
+%% Characterise shockwaves
+pal_data=pal_zxy0;      % a copy to safely pass data to analysis scripts (not functions!) 
+
+%%% process PAL
 main_process_pal;
 
-%% fringe characterisation
+%%% fringe characterisation
 DemoFringePeak;
+
+% store results - overwritten in current implementation of bootstrap
+PEAK_DIFF_ALL=peak_diff;
+MAX_PEAK_N=max_peak_n;
+
+%% evaluate uncertainty by bootstrapping
+% config
+% data subset size
+bootstrap_ndata=0.33;    % ratio subset size to all
+% number of sampling
+bootstrap_Nsamp=10;
+
+% bootstrapping
+bootstrap_Nsubset=ceil(nshot*bootstrap_ndata);      % number of shots in a subset
+I_subset=cell(bootstrap_Nsamp,1);
+
+% analysis on subsets
+PEAK_DIFF_SUB_CELL=cell(bootstrap_Nsamp,1);
+for ii_bootstrap=1:bootstrap_Nsamp
+    % random selection of subset
+    I_subset{ii_bootstrap}=randperm(nshot,bootstrap_Nsubset);
+    pal_data=cellfun(@(x) x(I_subset{ii_bootstrap}),pal_zxy0,'UniformOutput',false);
+    
+    % run analysis
+    % TODO turn off plotting!
+    main_process_pal;
+    DemoFringePeak;
+    
+    % save result separately
+    PEAK_DIFF_SUB_CELL{ii_bootstrap}=peak_diff;
+end
+% evaluate SD of analysis outupt
+% restructure subset outputs into array
+PEAK_DIFF_SUB=NaN([size(PEAK_DIFF_ALL),bootstrap_Nsamp]);   % preallocate NaN array
+for ii_bootstrap=1:bootstrap_Nsamp
+    this_peak_diff=PEAK_DIFF_SUB_CELL{ii_bootstrap};
+    PEAK_DIFF_SUB(:,1:size(this_peak_diff,2),ii_bootstrap)=this_peak_diff;
+end
+
+% max_peak_n=MAX_PEAK_N;
+PEAK_DIFF_SD=std(PEAK_DIFF_SUB,0,3,'omitnan');    % std from bootstrapping
+PEAK_DIFF_SD=PEAK_DIFF_SD(:,1:(MAX_PEAK_N-1));      % resize to all data
+
+% Plot with errors
+if vgraph>0
+    linewidth=1.5;
+    namearray={'LineWidth','MarkerFaceColor'};      % error bar graphics properties
+    valarray={linewidth,'w'};                 % 90 deg (normal) data
+    
+    hfig_dpeak_vs_Npal=figure();
+    p=zeros(1,(MAX_PEAK_N-1));      % array to store figure objects for selective legend
+    for ii=1:(MAX_PEAK_N-1)
+        hold on;
+        hdata_pal_n=ploterr(Nal,PEAK_DIFF_ALL(:,ii),pal_n(:,2),PEAK_DIFF_SD(:,ii),'o','hhxy',0);
+        set(hdata_pal_n(1),namearray,valarray,'Color',cc2(ii,:),'DisplayName',sprintf('%d',ii));
+        set(hdata_pal_n(2),namearray,valarray,'Color',cc2(ii,:),'DisplayName','');
+        set(hdata_pal_n(3),namearray,valarray,'Color',cc2(ii,:),'DisplayName','');
+        p(ii)=hdata_pal_n(1);
+    end
+    box on;
+    lgd=legend(p);
+    title(lgd,'Fringe spacing');
+    xlabel('$N_{AL}$');
+    ylabel('Fringe spacing [mm]');
+end
 
 %% save results
 % clean workspace
@@ -412,7 +478,9 @@ if configs.flags.savedata
 end
 
 %% end of code %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-t_main_end=toc(t_main_start);   % end of code
-disp('-----------------------------------------------');
-fprintf('Total elapsed time (s): %7.1f\n',t_main_end);
-disp('===================ALL TASKS COMPLETED===================');
+if verbose>0
+    t_main_end=toc(t_main_start);   % end of code
+    disp('-----------------------------------------------');
+    fprintf('Total elapsed time (s): %7.1f\n',t_main_end);
+    disp('===================ALL TASKS COMPLETED===================');
+end

@@ -3,6 +3,8 @@
 % along vertical (Z') direction. take 2D density profile in Y'Z'
 % projection (integrates X) - take finite width line profile along Z' to
 % obtain 1d density fringes.
+%
+% pal_data is analysed
 
 %% configure
 % configure the 1d density profile
@@ -19,11 +21,6 @@ zz_c=cents{1};
 
 nsmooth_1d_raw=5;   % moving average sample size - smoothing raw 1D profile
 
-% % plotting
-% plot_ncol=ceil(sqrt(pal_nseq));         % subplot num cols
-% plot_nrow=ceil(pal_nseq/plot_ncol);     % subplot num rows
-
-% cc=distinguishable_colors(pal_nseq);	% colors for plotting against PAL properties
 
 %% main
 % get indices for data in fringe ROI
@@ -51,7 +48,7 @@ if vgraph>0
 end
 for pal_id=1:pal_nseq
     % variable 'pal' is Nx3 array
-    pal=vertcat(pal_zxy0{pal_id}{:});    % collate all shots in this PAL
+    pal=vertcat(pal_data{pal_id}{:});    % collate all shots in this PAL
     
     %%% transform PAL zxy to align jet to Z-axis
     % cull X --> unused
