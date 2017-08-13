@@ -19,11 +19,11 @@ zz_c=cents{1};
 
 nsmooth_1d_raw=5;   % moving average sample size - smoothing raw 1D profile
 
-% plotting
-plot_ncol=ceil(sqrt(pal_nseq));         % subplot num cols
-plot_nrow=ceil(pal_nseq/plot_ncol);     % subplot num rows
+% % plotting
+% plot_ncol=ceil(sqrt(pal_nseq));         % subplot num cols
+% plot_nrow=ceil(pal_nseq/plot_ncol);     % subplot num rows
 
-cc=distinguishable_colors(pal_nseq);	% colors for plotting against PAL properties
+% cc=distinguishable_colors(pal_nseq);	% colors for plotting against PAL properties
 
 %% main
 % get indices for data in fringe ROI
@@ -44,10 +44,11 @@ pos_roi=[roi_x,roi_y,roi_w,roi_h];
 % preallocate
 nn1d=cell(pal_nseq,1);      % 1D density profile
 
-hfig_ndenrot=figure();
-hfig_ndenraw=figure();  
-hfig_nden1d=figure();
-
+if vgraph>0
+    hfig_ndenrot=figure();
+    hfig_ndenraw=figure();
+    hfig_nden1d=figure();
+end
 for pal_id=1:pal_nseq
     % variable 'pal' is Nx3 array
     pal=vertcat(pal_zxy0{pal_id}{:});    % collate all shots in this PAL
@@ -67,13 +68,6 @@ for pal_id=1:pal_nseq
     %%% evaluate 2D density
     nn2d=density2d(pal_rot,{yy_ed,zz_ed})';
     
-    % plot full 2D projected density profile
-    figure(hfig_ndenrot);
-    subplot(plot_nrow,plot_ncol,pal_id);
-    imagesc(yy_c,zz_c,nn2d);
-    set(gca,'YDir','normal');
-    axis equal; axis tight; 
-    title(sprintf('%d',pal_id));
     
     %%% prepare 1D density profile through shockwave
     nn_raw=nn2d(id_zz,id_yy);                 % raw 2d density in region of interest
@@ -81,34 +75,46 @@ for pal_id=1:pal_nseq
     nn1d{pal_id}=smooth(nn1d_temp,nsmooth_1d_raw);       % simple smoothing - moving average
     
     %%% plot result
-    % 2D density in 2D region of interest
+    if vgraph>0
+        % plot full 2D projected density profile
+        figure(hfig_ndenrot);
+        subplot(plot_nrow,plot_ncol,pal_id);
+        imagesc(yy_c,zz_c,nn2d);
+        set(gca,'YDir','normal');
+        axis equal; axis tight;
+        title(sprintf('%d',pal_id));
+        
+        % 2D density in 2D region of interest
+        figure(hfig_ndenraw);
+        subplot(plot_nrow,plot_ncol,pal_id);
+        imagesc(yy,zz,nn_raw);
+        set(gca,'YDir','normal');
+        title(sprintf('%d',pal_id));
+        
+        % draw rectangle for ROI on 2D density plot
+        figure(hfig_ndenrot);
+        subplot(plot_nrow,plot_ncol,pal_id);
+        hold on;
+        rectangle('Position',pos_roi,'EdgeColor','w');
+        
+        % 1D density profile
+        figure(hfig_nden1d);
+        hold on;
+        plot(1e3 *zz,nn1d{pal_id},...
+            'DisplayName',sprintf('%d: %0.2g, %0.2g',pal_id,Nal(pal_id),N0(pal_id)),...
+            'LineWidth',1.5,'color',cc(pal_id,:));
+    end
+end
+%%% annotate figures
+if vgraph>0
+    % raw density in region of interest
     figure(hfig_ndenraw);
-    subplot(plot_nrow,plot_ncol,pal_id);
-    imagesc(yy,zz,nn_raw);
-    set(gca,'YDir','normal');
-    title(sprintf('%d',pal_id));
-    
-    % draw rectangle for ROI on 2D density plot
-    figure(hfig_ndenrot);
-    subplot(plot_nrow,plot_ncol,pal_id);
-    hold on;
-    rectangle('Position',pos_roi,'EdgeColor','w');
     
     % 1D density profile
     figure(hfig_nden1d);
-    hold on;
-    plot(1e3 *zz,nn1d{pal_id},...
-        'DisplayName',sprintf('%d: %0.2g, %0.2g',pal_id,Nal(pal_id),N0(pal_id)),...
-        'LineWidth',1.5,'color',cc(pal_id,:));
+    lgd=legend('show');
+    title(lgd,'PAL: $N_{AL}$, $N_0$');
+    box on;
+    xlabel('distance [mm]');
+    ylabel('density [arb]');
 end
-%%% annotate figures
-% raw density in region of interest
-figure(hfig_ndenraw);
-
-% 1D density profile
-figure(hfig_nden1d);
-lgd=legend('show');
-title(lgd,'PAL: $N_{AL}$, $N_0$');
-box on;
-xlabel('distance [mm]');
-ylabel('density [arb]');

@@ -2,11 +2,10 @@ clear all;
 
 %% configs
 configs.flags.verbose=1;
-configs.flags.savedata=1;
+configs.flags.savedata=0;
 configs.flags.archive_txy=1;
 configs.flags.force_all_stages=0;
 configs.flags.graphics=1;
-configs.flags.animation=0;
 configs.flags.build_txy=1;
 
 configs.misc.vel_z=9.8*0.416;    % atom free-fall vert v at detector hit for T-to-Z conversion;
@@ -42,8 +41,12 @@ configs.pal.n=10;
 
 
 %% initialise
+% flags
 do_next=configs.flags.force_all_stages;
 verbose=configs.flags.verbose;
+vgraph=configs.flags.graphics;
+
+% misc
 t_main_start=tic;   % for reporting process duration
 datetimestr=datestr(datetime,'yyyymmdd_HHMMSS');    % timestamp when function called
 configs.files.dirout=[configs.files.dirout,'_',datetimestr];
@@ -51,6 +54,19 @@ vz=configs.misc.vel_z;
 det_qe=configs.misc.det_qe;
 HFIG={};        % cell array for all figures generated
 
+%%% PAL
+pal_z1=configs.pal.t1*vz;
+pal_dz=configs.pal.dt*vz;
+pal_nseq=configs.pal.n;
+
+plot_ncol=ceil(sqrt(pal_nseq));         % subplot num cols
+plot_nrow=ceil(pal_nseq/plot_ncol);     % subplot num rows
+
+%%% plotting
+cc=distinguishable_colors(pal_nseq);	% colors for plotting against PAL properties
+
+%%% directories
+% output
 if configs.flags.savedata
     % output directory
     if ~isdir(configs.files.dirout)
@@ -59,7 +75,7 @@ if configs.flags.savedata
     end
 end
 
-% check for archive directory
+% archive
 if ~isdir(configs.files.archive)
     warning(['archive directory "',configs.files.archive,'"does not exist. Creating directory...']);
     mkdir(configs.files.archive);
@@ -125,19 +141,16 @@ zxy=cellfun(@(x) double(x.*repmat([vz,1,1],[size(x,1),1])),txy,'UniformOutput',f
 clearvars txy;      % clear the biggest data
 
 % check loaded data
-if verbose>0
-    hfig_all=figure();
-    plot_zxy(zxy,3e4,1,'k');
-    axis equal;
-    view(90,0);
+if vgraph>0
+    if verbose>2
+        hfig_all=figure();
+        plot_zxy(zxy,3e4,1,'k');
+        axis equal;
+        view(90,0);
+    end
 end
 
 % get PAL
-% build config
-pal_z1=configs.pal.t1*vz;
-pal_dz=configs.pal.dt*vz;
-pal_nseq=configs.pal.n;
-
 pal_zxy=capture_pal(zxy,pal_z1,pal_dz,pal_nseq);
 
 clearvars zxy;      % delete zxy - not used from here
@@ -167,25 +180,25 @@ for ii=1:pal_nseq
     pal_zxy0{ii}=cellfun(@(x) x-repmat(pal_cent_avg(ii,:),[size(x,1),1]),pal_zxy{ii},'UniformOutput',false);
 end
 
-% summarise captured PALs
-if verbose>0
-    hfig_pal=figure();
-    plot_ncol=ceil(sqrt(pal_nseq));
-    plot_nrow=ceil(pal_nseq/plot_ncol);
-    for ii=1:pal_nseq
-        subplot(plot_nrow,plot_ncol,ii);
-        plot_zxy(pal_zxy0{ii},1e4,1,'k');
-        view(90,0);
-        axis equal;
-        axis tight;
-        box on;
-        ht=sprintf('PAL: %d',ii);
-        title(ht);
-    end
-end
-
 % clean workspace
 clearvars pal_zxy;
+
+% summarise captured PALs
+if vgraph>0
+    if verbose>2
+        hfig_pal=figure();
+        for ii=1:pal_nseq
+            subplot(plot_nrow,plot_ncol,ii);
+            plot_zxy(pal_zxy0{ii},1e4,1,'k');
+            view(90,0);
+            axis equal;
+            axis tight;
+            box on;
+            ht=sprintf('PAL: %d',ii);
+            title(ht);
+        end
+    end
+end
 
 %% Process PAL
 %%% Evaluate atom numbers
@@ -224,24 +237,26 @@ Nal=Npal_fit.y;
 N0=(paramfit(1,1)*(1-paramfit(2,1)).^(1:pal_nseq))';
 
 % summarise
-linewidth=1.5;
-namearray={'LineWidth','MarkerFaceColor','Color'};      % error bar graphics properties
-valarray={linewidth,'w','k'};                 % 90 deg (normal) data
-if verbose>0
-    hfig_atom_number=figure();
-    % plot data
-    hdata_pal_n=ploterr(1:pal_nseq,pal_n(:,1),[],pal_n(:,2),'o','hhxy',0);
-    set(hdata_pal_n(1),namearray,valarray,'DisplayName','Data');
-    set(hdata_pal_n(2),namearray,valarray,'DisplayName','');
-    
-    hold on;
-    % plot fit
-    hfit=plot(Npal_fit.x,Nal,'r*','DisplayName','Fit');
-    
-    % annotate
-    legend([hdata_pal_n(1),hfit]);
-    xlabel('Pulse number');
-    ylabel('Number in PAL');
+if vgraph>0
+    linewidth=1.5;
+    namearray={'LineWidth','MarkerFaceColor','Color'};      % error bar graphics properties
+    valarray={linewidth,'w','k'};                 % 90 deg (normal) data
+    if verbose>1
+        hfig_atom_number=figure();
+        % plot data
+        hdata_pal_n=ploterr(1:pal_nseq,pal_n(:,1),[],pal_n(:,2),'o','hhxy',0);
+        set(hdata_pal_n(1),namearray,valarray,'DisplayName','Data');
+        set(hdata_pal_n(2),namearray,valarray,'DisplayName','');
+        
+        hold on;
+        % plot fit
+        hfit=plot(Npal_fit.x,Nal,'r*','DisplayName','Fit');
+        
+        % annotate
+        legend([hdata_pal_n(1),hfit]);
+        xlabel('Pulse number');
+        ylabel('Number in PAL');
+    end
 end
 
 %% PAL density image
@@ -268,42 +283,36 @@ for ii=1:pal_nseq
 end
 
 % summarise
-if verbose>0
-    % each dim plotted in separate figure
-    plot_ncol=ceil(sqrt(pal_nseq));
-    plot_nrow=ceil(pal_nseq/plot_ncol);
-    
-    for ii=1:3
-        hfig_pal_nden2(ii)=figure();
-        
-        % get image X,Y axis - NOT CYCLIC
-        ord=[1,2,3];
-        ord_xy=ord([1:ii-1,ii+1:3]);    % pop the integrated dim out
-        
-        % plot each PAL as subfigure
-        for jj=1:pal_nseq
-            subplot(plot_nrow,plot_ncol,jj);
+if vgraph>0
+    if verbose>1
+        for ii=1:3
+            hfig_pal_nden2(ii)=figure();
             
-            % quick and dirty way to do density plot - imagesc
-            imagesc(cents{ord_xy(2)},cents{ord_xy(1)},nden2{jj,ii});
-            set(gca,'YDir','normal');   % orient it the correct way
+            % get image X,Y axis - NOT CYCLIC
+            ord=[1,2,3];
+            ord_xy=ord([1:ii-1,ii+1:3]);    % pop the integrated dim out
             
-            % annotate
-            axis equal;
-            box on;
-            ht=sprintf('(%d) %0.2g',jj,Nal(jj));
-            title(ht);
+            % plot each PAL as subfigure
+            for jj=1:pal_nseq
+                subplot(plot_nrow,plot_ncol,jj);
+                
+                % quick and dirty way to do density plot - imagesc
+                imagesc(cents{ord_xy(2)},cents{ord_xy(1)},nden2{jj,ii});
+                set(gca,'YDir','normal');   % orient it the correct way
+                
+                % annotate
+                axis equal;
+                box on;
+                ht=sprintf('(%d) %0.2g',jj,Nal(jj));
+                title(ht);
+            end
         end
     end
 end
 
 %% 2D slices
-if configs.flags.animation
-    % animation - sweep each dim and take 2D density slice
-    % each dim plotted in separate figure
-    plot_ncol=ceil(sqrt(pal_nseq));
-    plot_nrow=ceil(pal_nseq/plot_ncol);
-    
+if vgraph>1
+    % animation - sweep each dim and take 2D density slice    
     mov=cell(3,1);
     for ii=1:3
         hfig_pal_nden2_sl(ii)=figure();
@@ -367,9 +376,19 @@ if configs.flags.animation
     % free up memory
     clearvars mov;
 end
+clearvars nden3;
 
+
+%% process PAL
+main_process_pal;
+
+%% fringe characterisation
+DemoFringePeak;
 
 %% save results
+% clean workspace
+clearvars pal_zxy0;
+
 if configs.flags.savedata
 %     %%% fig
 %     % TODO - need to be able to save all graphics from each subroutine
@@ -385,9 +404,11 @@ if configs.flags.savedata
     % get all vars in workspace except graphics handles
     allvars=whos;
     tosave=cellfun(@isempty,regexp({allvars.class},'^matlab\.(ui|graphics)\.'));
-    
+
     % doesn't save the whole workspace this way
     save([configs.files.dirout,'/',mfilename,'_data','.mat'],allvars(tosave).name);
+%     varstosave={};
+%     save([configs.files.dirout,'/',mfilename,'_data','.mat'],varstosave{:});
 end
 
 %% end of code %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
