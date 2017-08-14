@@ -1,7 +1,8 @@
 %% configs
 % User path to config
 % path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_20170716_atomlaser.m';
-path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_20170717_atomlaser.m';
+% path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_20170717_atomlaser.m';
+path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_run1.m';
 
 % load config
 run(path_config);
@@ -30,6 +31,15 @@ plot_nrow=ceil(pal_nseq/plot_ncol);     % subplot num rows
 
 %%% plotting
 cc=distinguishable_colors(pal_nseq);	% colors for plotting against PAL properties
+
+%%% voxels
+% construct edge/center vectors for each dim
+edges=cell(3,1);
+cents=cell(3,1);
+for ii=1:3
+    edges{ii}=configs.image.size(ii,1):configs.image.voxel_res(ii):configs.image.size(ii,2);
+    cents{ii}=0.5*(edges{ii}(1:end-1)+edges{ii}(2:end));
+end
 
 %%% directories
 % output
@@ -180,7 +190,8 @@ pal_n(:,2)=pal_n(:,2)/sqrt(nshot);
 
 %%%% fit to estimate number in condensate (N0) and outcoupling efficiency
 % (eff_oc)
-n_i=2:pal_nseq;     % TODO pulse numbers to use - don't use sat'd
+% n_i=2:pal_nseq;     % TODO pulse numbers to use - don't use sat'd
+n_i=configs.pal.nfitstart:pal_nseq;     % pulses to do fit
 param0=[1e5,0.1];   % estimate for initial param
 
 modelfun='y~N0*(1-r)^(x1-1)*r';     % x1: PAL index; N0: BEC number; r: outcoupling frac; y: number in x1^th PAL; 
@@ -195,6 +206,10 @@ fo = statset('TolFun',10^-6,...
 % do the fit
 fitobject=fitnlm(n_i,pal_n(n_i,1),modelfun,param0,...
     'CoefficientNames',coeffnames,'Options',fo);
+
+if verbose>0
+    disp(fitobject);
+end
 
 % get fit results
 paramfit=[fitobject.Coefficients.Estimate,fitobject.Coefficients.SE];
@@ -229,15 +244,6 @@ if vgraph>0
 end
 
 %% PAL density image
-%%% configure voxels
-% construct edge/center vectors for each dim
-edges=cell(3,1);
-cents=cell(3,1);
-for ii=1:3
-    edges{ii}=configs.image.size(ii,1):configs.image.voxel_res(ii):configs.image.size(ii,2);
-    cents{ii}=0.5*(edges{ii}(1:end-1)+edges{ii}(2:end));
-end
-
 %%% 3D density profile (full)
 nden3=cellfun(@(x) density3d(x,edges),pal_zxy0,'UniformOutput',false);
 
@@ -362,15 +368,6 @@ PEAK_DIFF_ALL=peak_diff;
 MAX_PEAK_N=max_peak_n;
 
 %% evaluate uncertainty by bootstrapping
-% %%% config
-% % rng
-% rng('shuffle');
-% 
-% % data subset size
-% bootstrap_ndata=0.2;    % ratio subset size to all
-% % number of sampling
-% bootstrap_Nsamp=50;
-
 % configure for bootstrapping
 vgraph=0;   % skip graphics
 
