@@ -1,7 +1,7 @@
 %% configs
 configs.flags.verbose=0;
 configs.flags.savedata=0;
-configs.flags.archive_txy=0;
+configs.flags.archive_txy=1;
 configs.flags.force_all_stages=0;
 configs.flags.graphics=1;
 configs.flags.build_txy=1;
@@ -9,8 +9,8 @@ configs.flags.build_txy=1;
 configs.misc.vel_z=9.8*0.416;    % atom free-fall vert v at detector hit for T-to-Z conversion;
 configs.misc.det_qe=0.1;
 
-% configs.files.path='C:\Users\HE BEC\Documents\lab\shockwave\20170716_atomlaser\d';
-configs.files.path='C:\Users\David\Documents\hebec\shockwave\data\d';
+configs.files.path='C:\Users\HE BEC\Documents\lab\shockwave\20170716_atomlaser\d';
+% configs.files.path='C:\Users\David\Documents\hebec\shockwave\data\d';
 
 configs.files.dir_data=fileparts(configs.files.path);    % fullpath to data directory
 configs.files.archive=fullfile(configs.files.dir_data,'archive');   % dir to archive folder
@@ -18,7 +18,7 @@ configs.files.dirout=fullfile(configs.files.dir_data,'output');      % output di
 
 configs.load.version=1.1;         % TXY load stage version number
 
-configs.load.id=1:500;         % file id numbers to use for analysis
+configs.load.id=1:3615;         % file id numbers to use for analysis
 configs.load.mincount=1000;         % min counts in window - 0 for no min
 configs.load.maxcount=Inf;          % max counts in window - Inf for no max
 
@@ -168,7 +168,7 @@ for ii=1:pal_nseq
     this_pal_cent_array=vertcat(this_pal_cent_array{:});    % form into nshotx3 array
     
     pal_cent_avg(ii,:)=mean(this_pal_cent_array,1);     % average zxy center in this pulse
-    pal_cent_std(ii,:)=std(this_pal_cent_array,1);      % uncertainty in the mean centre position
+    pal_cent_std(ii,:)=std(this_pal_cent_array);        % uncertainty in the mean centre position
 end
 
 % centre PAL
@@ -204,8 +204,11 @@ end
 pal_n=zeros(pal_nseq,2);    % preallocate; format: [avg, std]
 for ii=1:pal_nseq
     this_pal_n=cellfun(@(x) size(x,1),pal_zxy0{ii});    % number in nth PAL 'detected'
-    pal_n(ii,:)=(1/det_qe)*[mean(this_pal_n),std(this_pal_n)];      % estimate actual number in PAL
+    % estimate actual number in PAL - error in SD
+    pal_n(ii,:)=(1/det_qe)*[mean(this_pal_n),std(this_pal_n)];      
 end
+% PAL number uncertainty in SE
+pal_n(:,2)=pal_n(:,2)/sqrt(nshot);
 
 %%%% fit to estimate number in condensate (N0) and outcoupling efficiency
 % (eff_oc)
@@ -391,11 +394,17 @@ PEAK_DIFF_ALL=peak_diff;
 MAX_PEAK_N=max_peak_n;
 
 %% evaluate uncertainty by bootstrapping
-% config
+%%% config
+% rng
+rng('shuffle');
+
+% flags
+vgraph=0;   % skip graphics
+
 % data subset size
-bootstrap_ndata=0.33;    % ratio subset size to all
+bootstrap_ndata=0.2;    % ratio subset size to all
 % number of sampling
-bootstrap_Nsamp=10;
+bootstrap_Nsamp=50;
 
 % bootstrapping
 bootstrap_Nsubset=ceil(nshot*bootstrap_ndata);      % number of shots in a subset
@@ -403,15 +412,18 @@ I_subset=cell(bootstrap_Nsamp,1);
 
 % analysis on subsets
 PEAK_DIFF_SUB_CELL=cell(bootstrap_Nsamp,1);
+AL_N_SUB=zeros(pal_nseq,bootstrap_Nsamp);
 for ii_bootstrap=1:bootstrap_Nsamp
     % random selection of subset
     I_subset{ii_bootstrap}=randperm(nshot,bootstrap_Nsubset);
     pal_data=cellfun(@(x) x(I_subset{ii_bootstrap}),pal_zxy0,'UniformOutput',false);
     
     % run analysis
-    % TODO turn off plotting!
     main_process_pal;
     DemoFringePeak;
+    
+    % get avg number in PAL from this subset
+    AL_N_SUB(:,ii_bootstrap)=cellfun(@(x) mean(cellfun(@(y) size(y,1),x)),pal_data);
     
     % save result separately
     PEAK_DIFF_SUB_CELL{ii_bootstrap}=peak_diff;
@@ -424,11 +436,15 @@ for ii_bootstrap=1:bootstrap_Nsamp
     PEAK_DIFF_SUB(:,1:size(this_peak_diff,2),ii_bootstrap)=this_peak_diff;
 end
 
-% max_peak_n=MAX_PEAK_N;
 PEAK_DIFF_SD=std(PEAK_DIFF_SUB,0,3,'omitnan');    % std from bootstrapping
 PEAK_DIFF_SD=PEAK_DIFF_SD(:,1:(MAX_PEAK_N-1));      % resize to all data
 
+% PAL number uncertainty from bootstrapping data subsets
+AL_N_AVG=mean(AL_N_SUB,2);      % avg PAL number
+AL_N_SD=std(AL_N_SUB,0,2);      % SD PAL number
+
 % Plot with errors
+vgraph=configs.flags.graphics;   % reset graphics flag
 if vgraph>0
     linewidth=1.5;
     namearray={'LineWidth','MarkerFaceColor'};      % error bar graphics properties
@@ -438,7 +454,8 @@ if vgraph>0
     p=zeros(1,(MAX_PEAK_N-1));      % array to store figure objects for selective legend
     for ii=1:(MAX_PEAK_N-1)
         hold on;
-        hdata_pal_n=ploterr(Nal,PEAK_DIFF_ALL(:,ii),pal_n(:,2),PEAK_DIFF_SD(:,ii),'o','hhxy',0);
+        %         hdata_pal_n=ploterr(Nal,PEAK_DIFF_ALL(:,ii),pal_n(:,2),PEAK_DIFF_SD(:,ii),'o','hhxy',0);
+        hdata_pal_n=ploterr(Nal,PEAK_DIFF_ALL(:,ii),AL_N_SD,PEAK_DIFF_SD(:,ii),'o','hhxy',0);
         set(hdata_pal_n(1),namearray,valarray,'Color',cc2(ii,:),'DisplayName',sprintf('%d',ii));
         set(hdata_pal_n(2),namearray,valarray,'Color',cc2(ii,:),'DisplayName','');
         set(hdata_pal_n(3),namearray,valarray,'Color',cc2(ii,:),'DisplayName','');
@@ -451,10 +468,9 @@ if vgraph>0
     ylabel('Fringe spacing [mm]');
 end
 
-%% save results
-% clean workspace
-clearvars pal_zxy0;
+clearvars pal_zxy0;     % clean workspace
 
+%% save results
 if configs.flags.savedata
 %     %%% fig
 %     % TODO - need to be able to save all graphics from each subroutine
