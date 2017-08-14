@@ -1,6 +1,7 @@
 %% configs
 % User path to config
-path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_20170716_atomlaser.m';
+% path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_20170716_atomlaser.m';
+path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_20170717_atomlaser.m';
 
 % load config
 run(path_config);
@@ -433,6 +434,12 @@ if vgraph>0
     title(lgd,'Fringe spacing');
     xlabel('$N_{AL}$');
     ylabel('Fringe spacing [mm]');
+    
+    if configs.flags.savedata
+        figname=sprintf('dpeak_vs_Npal');
+        saveas(hfig_dpeak_vs_Npal,[configs.files.dirout,'/',figname,'.png']);
+        saveas(hfig_dpeak_vs_Npal,[configs.files.dirout,'/',figname,'.fig']);
+    end
 end
 
 clearvars pal_zxy0;     % clean workspace

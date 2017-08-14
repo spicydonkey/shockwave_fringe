@@ -3,18 +3,6 @@
 % detection.
 % do peak detection and output results
 
-% %%% configure
-% % background smoothing
-% n_sm_bgd=15;
-% n_sm_post=10;
-% 
-% % peak detection algorithm
-% slopethreshold=1e-4;
-% ampthreshold=0.1;
-% smoothwidth=0;          % 0 to no smoothing in peak finding
-% peakgroup=5;
-% smoothtype=1;   % smoothing is off
-
 %% main
 % load line profile
 d_1d=zz;     % distance along line
