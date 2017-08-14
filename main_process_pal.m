@@ -6,20 +6,22 @@
 %
 % pal_data is analysed
 
-%% configure
-% configure the 1d density profile
-fringe_cfg.offset=[0,-0.006];       % yz translation for centering transformation
-fringe_cfg.theta=1.1;               % rotation angle around x-axis (rad) - to align fringes in vertical Y-axis
-fringe_cfg.width=2e-3;              % 1d profile perpendicularly [m]
-fringe_cfg.dlim=[0,20e-3];          % line profile limits
+% %% configure
+% % configure the 1d density profile
+% fringe_cfg.offset=[0,-0.006];       % yz translation for centering transformation
+% fringe_cfg.theta=1.1;               % rotation angle around x-axis (rad) - to align fringes in vertical Y-axis
+% fringe_cfg.width=2e-3;              % 1d profile perpendicularly [m]
+% fringe_cfg.dlim=[0,20e-3];          % line profile limits
+% 
+% nsmooth_1d_raw=5;   % moving average sample size - smoothing raw 1D profile
+ 
 
+%% initialise
 % density - histogramming (in rotated axis)
 yy_ed=edges{3};
 zz_ed=edges{1};
 yy_c=cents{3};
 zz_c=cents{1};
-
-nsmooth_1d_raw=5;   % moving average sample size - smoothing raw 1D profile
 
 
 %% main

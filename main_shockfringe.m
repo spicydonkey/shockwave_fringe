@@ -1,42 +1,9 @@
 %% configs
-configs.flags.verbose=0;
-configs.flags.savedata=0;
-configs.flags.archive_txy=1;
-configs.flags.force_all_stages=0;
-configs.flags.graphics=1;
-configs.flags.build_txy=1;
+% User path to config
+path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_20170716_atomlaser.m';
 
-configs.misc.vel_z=9.8*0.416;    % atom free-fall vert v at detector hit for T-to-Z conversion;
-configs.misc.det_qe=0.1;
-
-configs.files.path='C:\Users\HE BEC\Documents\lab\shockwave\20170716_atomlaser\d';
-% configs.files.path='C:\Users\David\Documents\hebec\shockwave\data\d';
-
-configs.files.dir_data=fileparts(configs.files.path);    % fullpath to data directory
-configs.files.archive=fullfile(configs.files.dir_data,'archive');   % dir to archive folder
-configs.files.dirout=fullfile(configs.files.dir_data,'output');      % output directory (will be time-stamped)
-
-configs.load.version=1.1;         % TXY load stage version number
-
-configs.load.id=1:3615;         % file id numbers to use for analysis
-configs.load.mincount=1000;         % min counts in window - 0 for no min
-configs.load.maxcount=Inf;          % max counts in window - Inf for no max
-
-configs.load.rot_angle=0.61;    % detector/trap alignment
-
-% construct window for ROI
-configs.load.window{1}=[0.45,0.7];      % T [s] include all PALs
-configs.load.window{2}=[-5e-3,10e-3];    % X [m]
-configs.load.window{3}=[-20e-3,30e-3];    % Y [m]
-
-configs.image.voxel_res=1e-4*[1,1,1];   % ZXY voxel resolution [m]
-configs.image.size=[-30e-3,40e-3;-5e-3,5e-3; -25e-3,25e-3];   % image size/lims [T;X;Y] [m]
-
-% PAL
-configs.pal.t1=0.4658;      % estimated from the first pal flux peak on DLD front panel
-configs.pal.dt=0.0212;      % estimated from peak diff of first and second
-configs.pal.n=10;
-
+% load config
+run(path_config);
 
 %% initialise
 % flags
@@ -394,17 +361,17 @@ PEAK_DIFF_ALL=peak_diff;
 MAX_PEAK_N=max_peak_n;
 
 %% evaluate uncertainty by bootstrapping
-%%% config
-% rng
-rng('shuffle');
+% %%% config
+% % rng
+% rng('shuffle');
+% 
+% % data subset size
+% bootstrap_ndata=0.2;    % ratio subset size to all
+% % number of sampling
+% bootstrap_Nsamp=50;
 
-% flags
+% configure for bootstrapping
 vgraph=0;   % skip graphics
-
-% data subset size
-bootstrap_ndata=0.2;    % ratio subset size to all
-% number of sampling
-bootstrap_Nsamp=50;
 
 % bootstrapping
 bootstrap_Nsubset=ceil(nshot*bootstrap_ndata);      % number of shots in a subset
