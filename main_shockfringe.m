@@ -367,6 +367,7 @@ DemoFringePeak;
 % store results - overwritten in current implementation of bootstrap
 PEAK_DIFF_ALL=peak_diff;
 MAX_PEAK_N=max_peak_n;
+CC2=distinguishable_colors(MAX_PEAK_N-1);
 
 %% evaluate uncertainty by bootstrapping
 % configure for bootstrapping
@@ -422,9 +423,9 @@ if vgraph>0
         hold on;
         %         hdata_pal_n=ploterr(Nal,PEAK_DIFF_ALL(:,ii),pal_n(:,2),PEAK_DIFF_SD(:,ii),'o','hhxy',0);
         hdata_pal_n=ploterr(Nal,PEAK_DIFF_ALL(:,ii),AL_N_SD,PEAK_DIFF_SD(:,ii),'o','hhxy',0);
-        set(hdata_pal_n(1),namearray,valarray,'Color',cc2(ii,:),'DisplayName',sprintf('%d',ii));
-        set(hdata_pal_n(2),namearray,valarray,'Color',cc2(ii,:),'DisplayName','');
-        set(hdata_pal_n(3),namearray,valarray,'Color',cc2(ii,:),'DisplayName','');
+        set(hdata_pal_n(1),namearray,valarray,'Color',CC2(ii,:),'DisplayName',sprintf('%d',ii));
+        set(hdata_pal_n(2),namearray,valarray,'Color',CC2(ii,:),'DisplayName','');
+        set(hdata_pal_n(3),namearray,valarray,'Color',CC2(ii,:),'DisplayName','');
         p(ii)=hdata_pal_n(1);
     end
     box on;
@@ -442,8 +443,20 @@ end
 
 clearvars pal_zxy0;     % clean workspace
 
+
+%% end of code %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+if verbose>0
+    t_main_end=toc(t_main_start);   % end of code
+    disp('-----------------------------------------------');
+    fprintf('Total elapsed time (s): %7.1f\n',t_main_end);
+    disp('===================ALL TASKS COMPLETED===================');
+end
+
 %% save results
 if configs.flags.savedata
+    if verbose>0
+        fprintf('Saving data. This may take a minute.\n');
+    end
 %     %%% fig
 %     % TODO - need to be able to save all graphics from each subroutine
 %     for ii=1:length(HFIG)
@@ -463,12 +476,4 @@ if configs.flags.savedata
     save([configs.files.dirout,'/',mfilename,'_data','.mat'],allvars(tosave).name);
 %     varstosave={};
 %     save([configs.files.dirout,'/',mfilename,'_data','.mat'],varstosave{:});
-end
-
-%% end of code %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-if verbose>0
-    t_main_end=toc(t_main_start);   % end of code
-    disp('-----------------------------------------------');
-    fprintf('Total elapsed time (s): %7.1f\n',t_main_end);
-    disp('===================ALL TASKS COMPLETED===================');
 end
