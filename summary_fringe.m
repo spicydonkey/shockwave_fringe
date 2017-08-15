@@ -37,9 +37,16 @@ for ii=1:Nexp
     % estimate error from "fitobject" - so poorly named - Nfit
     Nfit=S{ii}.fitobject;
     Nfitrelerr=Nfit.Coefficients.SE./Nfit.Coefficients.Estimate;   % N0, eta_RF fit err (rel)
-    N0_SE_rel=sqrt(sum(Nfitrelerr.^2));     % rel error for N0
-    N0_SE=S{ii}.N0*N0_SE_rel;       % evaluate SE
+    N0_SE_rel=sqrt(sum(Nfitrelerr.^2)).*(sqrt(1:length(S{ii}.N0))');     % rel error for N0
+    N0_SE=S{ii}.N0.*N0_SE_rel;       % evaluate SE
     S{ii}.N0_SE=N0_SE;          % store into data structure
+    
+    %%% number in AL
+    Nal_SE_rel=N0_SE_rel';          % scales identically with r=eta_RF + N0(0) from formula
+    Nal_SE=S{ii}.Nal.*Nal_SE_rel;	% evaluate SE from fit uncertainties
+    % add in quadrature with detected number fluctuation SE
+    Nal_SE=sqrt(S{ii}.AL_N_SD'.^2+Nal_SE.^2);
+    S{ii}.Nal_SE=Nal_SE;        % store into data structure
 end
 % tidy structure
 S=cell2mat(S);      % S is now struct array
@@ -67,7 +74,8 @@ for ii=1:Nexp
 %     p=zeros(1,ndpeak);
     for jj=1:ndpeak
         hold on;
-        hdata_pal_n=ploterr(thisS.Nal,thisS.PEAK_DIFF_ALL(:,jj),thisS.AL_N_SD,thisS.PEAK_DIFF_SD(:,jj),mm{ii},'hhxy',0);
+%         hdata_pal_n=ploterr(thisS.Nal,thisS.PEAK_DIFF_ALL(:,jj),thisS.AL_N_SD,thisS.PEAK_DIFF_SD(:,jj),mm{ii},'hhxy',0);
+hdata_pal_n=ploterr(thisS.Nal,thisS.PEAK_DIFF_ALL(:,jj),thisS.Nal_SE,thisS.PEAK_DIFF_SD(:,jj),mm{ii},'hhxy',0);
         set(hdata_pal_n(1),namearray,valarray,'Color',cc(jj,:),'MarkerSize',6,'DisplayName',sprintf('%d',jj));
         set(hdata_pal_n(2),namearray,valarray,'Color',cc(jj,:),'DisplayName','');
         set(hdata_pal_n(3),namearray,valarray,'Color',cc(jj,:),'DisplayName','');
