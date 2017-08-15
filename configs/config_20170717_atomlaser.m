@@ -37,6 +37,8 @@ configs.pal.t1=0.4658;      % estimated from the first pal flux peak on DLD fron
 configs.pal.dt=0.0212;      % estimated from peak diff of first and second
 configs.pal.n=10;
 
+configs.pal.nfitstart=2;    % AL pulse ID to begin fit from
+
 %% main_process_pal
 % configure the 1d density profile
 fringe_cfg.offset=[0,-0.006];       % yz translation for centering transformation

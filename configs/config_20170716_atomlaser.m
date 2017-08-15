@@ -10,7 +10,8 @@ configs.flags.build_txy=1;
 configs.misc.vel_z=9.8*0.416;    % atom free-fall vert v at detector hit for T-to-Z conversion;
 configs.misc.det_qe=0.1;
 
-configs.files.path='C:\Users\HE BEC\Documents\lab\shockwave\20170716_atomlaser\d';
+configs.files.path='\\AMPLPC29\Users\TDC_user\ProgramFiles\my_read_tdc_gui_v1.0.1\dld_output\20170716_atomlaser\d';
+% configs.files.path='C:\Users\HE BEC\Documents\lab\shockwave\20170716_atomlaser\d';
 % configs.files.path='C:\Users\David\Documents\hebec\shockwave\data\d';
 
 configs.files.dir_data=fileparts(configs.files.path);    % fullpath to data directory
@@ -37,6 +38,8 @@ configs.image.size=[-30e-3,40e-3;-5e-3,5e-3; -25e-3,25e-3];   % image size/lims 
 configs.pal.t1=0.4658;      % estimated from the first pal flux peak on DLD front panel
 configs.pal.dt=0.0212;      % estimated from peak diff of first and second
 configs.pal.n=10;
+
+configs.pal.nfitstart=2;    % AL pulse ID to begin fit from
 
 %% main_process_pal
 % configure the 1d density profile
