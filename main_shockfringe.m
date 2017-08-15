@@ -205,21 +205,35 @@ fo = statset('TolFun',10^-6,...
     'UseParallel',0);
 
 % do the fit
-fitobject=fitnlm(n_i,pal_n(n_i,1),modelfun,param0,...
+Nfit=fitnlm(n_i,pal_n(n_i,1),modelfun,param0,...
     'CoefficientNames',coeffnames,'Options',fo);
 
 if verbose>0
-    disp(fitobject);
+    disp(Nfit);
 end
 
 % get fit results
-paramfit=[fitobject.Coefficients.Estimate,fitobject.Coefficients.SE];
+paramfit=[Nfit.Coefficients.Estimate,Nfit.Coefficients.SE];
 Npal_fit.x=1:pal_nseq;
-Npal_fit.y=feval(fitobject,Npal_fit.x);
+Npal_fit.y=feval(Nfit,Npal_fit.x);
 Nal=Npal_fit.y;
 
-% get number in BEC
+%%% atoms numbers
+% BEC
 N0=(paramfit(1,1)*(1-paramfit(2,1)).^(1:pal_nseq))';
+% estimate error
+Nfitrelerr=Nfit.Coefficients.SE./Nfit.Coefficients.Estimate;        % N0, r fit err (rel)
+N0_SE_rel=Nfitrelerr(2)*(sqrt(1:length(N0))');    % rel error for N0
+N0_SE_rel=sqrt(N0_SE_rel.^2+Nfitrelerr(1)^2);
+N0_SE=N0.*N0_SE_rel;        % evaluate fit SE
+
+% AL
+Nal_SE_rel=N0_SE_rel';          % formula for Nal scales identically with N0
+Nal_SE_fit=Nal.*Nal_SE_rel;	% evaluate SE from fit uncertainties
+% will be summed with quadrature with detected number fluctuation SE for
+% total uncertainty
+
+clearvars Nfitrelerr N0_SE_rel Nal_SE_rel;
 
 % summarise
 if vgraph>0
@@ -409,6 +423,8 @@ PEAK_DIFF_SD=PEAK_DIFF_SD(:,1:(MAX_PEAK_N-1));      % resize to all data
 % PAL number uncertainty from bootstrapping data subsets
 AL_N_AVG=mean(AL_N_SUB,2);      % avg PAL number
 AL_N_SD=std(AL_N_SUB,0,2);      % SD PAL number
+% need to add in quadrature with fit uncertainty
+Nal_SE=sqrt(AL_N_SD'.^2+Nal_SE_fit.^2);
 
 % Plot with errors
 vgraph=configs.flags.graphics;   % reset graphics flag
@@ -421,8 +437,7 @@ if vgraph>0
     p=zeros(1,(MAX_PEAK_N-1));      % array to store figure objects for selective legend
     for ii=1:(MAX_PEAK_N-1)
         hold on;
-        %         hdata_pal_n=ploterr(Nal,PEAK_DIFF_ALL(:,ii),pal_n(:,2),PEAK_DIFF_SD(:,ii),'o','hhxy',0);
-        hdata_pal_n=ploterr(Nal,PEAK_DIFF_ALL(:,ii),AL_N_SD,PEAK_DIFF_SD(:,ii),'o','hhxy',0);
+        hdata_pal_n=ploterr(Nal,PEAK_DIFF_ALL(:,ii),Nal_SE,PEAK_DIFF_SD(:,ii),'o','hhxy',0);
         set(hdata_pal_n(1),namearray,valarray,'Color',CC2(ii,:),'DisplayName',sprintf('%d',ii));
         set(hdata_pal_n(2),namearray,valarray,'Color',CC2(ii,:),'DisplayName','');
         set(hdata_pal_n(3),namearray,valarray,'Color',CC2(ii,:),'DisplayName','');

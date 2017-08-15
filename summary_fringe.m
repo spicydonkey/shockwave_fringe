@@ -5,10 +5,10 @@
 %% CONFIG
 Ndpeakplot=2;    % number of fringe spacings to plot
 
-savefigs=1;
+savefigs=0;
 path_save='C:\Users\HE BEC\Desktop\shock_summary';
 
-path_data='C:\Users\HE BEC\Documents\lab\shockwave\summary\data';
+path_data='C:\Users\HE BEC\Documents\lab\shockwave\summary\data\ver2';
 data_regexp='run_*.mat';
 
 datetimestr=datestr(datetime,'yyyymmdd_HHMMSS');    % timestamp when function called
@@ -28,25 +28,25 @@ S=cell(Nexp,1);     % S is cell array of structs
 for ii=1:Nexp
     % load vars:
         % MAX_PEAK_N, Nal, AL_N_SD PEAK_DIFF_ALL, PEAK_DIFF_SD, N0
-    varsummary={'MAX_PEAK_N', 'Nal', 'AL_N_SD', 'PEAK_DIFF_ALL', 'PEAK_DIFF_SD', 'N0','fitobject'};
+    varsummary={'MAX_PEAK_N', 'PEAK_DIFF_ALL', 'PEAK_DIFF_SD', 'Nal', 'Nal_SE', 'N0', 'N0_SE', 'Nfit'};
     S{ii}=load(fullfile(path_data,mlist{ii}),varsummary{:});
     
     % TODO below data analysis needs to be in main and will need to update
     % summary
-    %%% number in BEC
-    % estimate error from "fitobject" - so poorly named - Nfit
-    Nfit=S{ii}.fitobject;
-    Nfitrelerr=Nfit.Coefficients.SE./Nfit.Coefficients.Estimate;   % N0, eta_RF fit err (rel)
-    N0_SE_rel=sqrt(sum(Nfitrelerr.^2)).*(sqrt(1:length(S{ii}.N0))');     % rel error for N0
-    N0_SE=S{ii}.N0.*N0_SE_rel;       % evaluate SE
-    S{ii}.N0_SE=N0_SE;          % store into data structure
+%     %%% number in BEC
+%     % estimate error from "fitobject" - so poorly named - Nfit
+%     Nfit=S{ii}.fitobject;
+%     Nfitrelerr=Nfit.Coefficients.SE./Nfit.Coefficients.Estimate;   % N0, eta_RF fit err (rel)
+%     N0_SE_rel=sqrt(sum(Nfitrelerr.^2)).*(sqrt(1:length(S{ii}.N0))');     % rel error for N0
+%     N0_SE=S{ii}.N0.*N0_SE_rel;       % evaluate SE
+%     S{ii}.N0_SE=N0_SE;          % store into data structure
     
-    %%% number in AL
-    Nal_SE_rel=N0_SE_rel';          % scales identically with r=eta_RF + N0(0) from formula
-    Nal_SE=S{ii}.Nal.*Nal_SE_rel;	% evaluate SE from fit uncertainties
-    % add in quadrature with detected number fluctuation SE
-    Nal_SE=sqrt(S{ii}.AL_N_SD'.^2+Nal_SE.^2);
-    S{ii}.Nal_SE=Nal_SE;        % store into data structure
+%     %%% number in AL
+%     Nal_SE_rel=N0_SE_rel';          % scales identically with r=eta_RF + N0(0) from formula
+%     Nal_SE=S{ii}.Nal.*Nal_SE_rel;	% evaluate SE from fit uncertainties
+%     % add in quadrature with detected number fluctuation SE
+%     Nal_SE=sqrt(S{ii}.AL_N_SD'.^2+Nal_SE.^2);
+%     S{ii}.Nal_SE=Nal_SE;        % store into data structure
 end
 % tidy structure
 S=cell2mat(S);      % S is now struct array
@@ -129,3 +129,54 @@ if savefigs>0
     saveas(hfig_dpeak_vs_N0,fullfile(path_save,[figname,'.png']));
     saveas(hfig_dpeak_vs_N0,fullfile(path_save,[figname,'.fig']));
 end
+
+%% scaling
+% try:
+%%% density
+% nal = N_al ^ alpha * N_BEC ^ beta
+alpha=1/2;      % guess
+beta=-3/5;       % mean field potential?
+%%% speed of sound
+% c = nal ^ gamma
+gamma=-1/2;
+
+for ii=1:Nexp
+    % density
+    S(ii).nal=(S(ii).Nal'.^alpha).*(S(ii).N0.^beta);
+    S(ii).c=S(ii).nal.^gamma;
+end
+
+hfig_dpeak_scaled=figure();
+
+namearray={'LineWidth','MarkerFaceColor'};      % error bar graphics properties
+valarray={linewidth,'w'};                 % 90 deg (normal) data
+
+for ii=1:Nexp
+    thisS=S(ii);
+    ndpeak=(thisS.MAX_PEAK_N-1);
+    if Ndpeakplot<ndpeak
+        ndpeak=Ndpeakplot;
+    end
+    %     p=zeros(1,ndpeak);
+    for jj=1:ndpeak
+        hold on;
+                hdata_pal_n=ploterr(thisS.nal,thisS.PEAK_DIFF_ALL(:,jj)./S(ii).c,[],[],mm{ii},'hhxy',0);
+%         hdata_pal_n=ploterr(thisS.nal,thisS.PEAK_DIFF_ALL(:,jj),[],[],mm{ii},'hhxy',0);
+        set(hdata_pal_n(1),namearray,valarray,'Color',cc(jj,:),'MarkerSize',6,'DisplayName',sprintf('%d',jj));
+%         set(hdata_pal_n(2),namearray,valarray,'Color',cc(jj,:),'DisplayName','');
+%         set(hdata_pal_n(3),namearray,valarray,'Color',cc(jj,:),'DisplayName','');
+%         p(jj)=hdata_pal_n(1);
+    end
+end
+box on;
+% lgd=legend(p);
+% title(lgd,'Fringe spacing');
+xlabel('$\tilde{\rho}_{AL}$');
+ylabel('Reduced fringe spacing');
+% 
+% %%% save fig
+% if savefigs>0
+%     figname=sprintf('dpeak_vs_N0_%s',datetimestr);
+%     saveas(hfig_dpeak_vs_N0,fullfile(path_save,[figname,'.png']));
+%     saveas(hfig_dpeak_vs_N0,fullfile(path_save,[figname,'.fig']));
+% end
