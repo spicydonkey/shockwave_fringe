@@ -132,18 +132,31 @@ end
 
 %% scaling
 % try:
-%%% density
-% nal = N_al ^ alpha * N_BEC ^ beta
-alpha=1/2;      % guess
-beta=-3/5;       % mean field potential?
-%%% speed of sound
-% c = nal ^ gamma
-gamma=-1/2;
+%%% density (avg)
+% TODO - this changes in AL - currently assumes uniform density
+% nal ~ N_al ^ alpha * N_BEC ^ beta
+alpha=1;
+beta=-3/5;
+
+%%% speed of sound (avg)
+% TODO - this changes in AL
+% c ~ nal ^ gamma
+gamma=1/2;
+
+%%% collision speed (avg)
+% TODO - calculated for fringes!
+% v ~ CONST (FOR NOW)
+
+%%% mach number (avg)
+% mach ~ v / c
 
 for ii=1:Nexp
     % density
     S(ii).nal=(S(ii).Nal'.^alpha).*(S(ii).N0.^beta);
     S(ii).c=S(ii).nal.^gamma;
+    S(ii).v=1;
+%     S(ii).mach=(S(ii).N0.^(3/10)).*(S(ii).Nal'.^(-1/2));
+    S(ii).mach=S(ii).v./S(ii).c;
 end
 
 hfig_dpeak_scaled=figure();
@@ -160,7 +173,8 @@ for ii=1:Nexp
     %     p=zeros(1,ndpeak);
     for jj=1:ndpeak
         hold on;
-                hdata_pal_n=ploterr(thisS.nal,thisS.PEAK_DIFF_ALL(:,jj)./S(ii).c,[],[],mm{ii},'hhxy',0);
+        hdata_pal_n=ploterr(1./thisS.mach,thisS.PEAK_DIFF_ALL(:,jj).*S(ii).c,[],[],mm{ii},'hhxy',0);
+%                 hdata_pal_n=ploterr(thisS.nal,thisS.PEAK_DIFF_ALL(:,jj).*S(ii).c,[],[],mm{ii},'hhxy',0);
 %         hdata_pal_n=ploterr(thisS.nal,thisS.PEAK_DIFF_ALL(:,jj),[],[],mm{ii},'hhxy',0);
         set(hdata_pal_n(1),namearray,valarray,'Color',cc(jj,:),'MarkerSize',6,'DisplayName',sprintf('%d',jj));
 %         set(hdata_pal_n(2),namearray,valarray,'Color',cc(jj,:),'DisplayName','');
@@ -171,8 +185,10 @@ end
 box on;
 % lgd=legend(p);
 % title(lgd,'Fringe spacing');
-xlabel('$\tilde{\rho}_{AL}$');
-ylabel('Reduced fringe spacing');
+% xlabel('$\tilde{\rho}_{AL}$');
+% ylabel('Reduced fringe spacing');
+xlabel('inverse Mach number');
+ylabel('$\lambda \cdot c$');
 % 
 % %%% save fig
 % if savefigs>0

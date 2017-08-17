@@ -1,9 +1,9 @@
 %% configs
 % User path to config
 % path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_20170716_atomlaser.m';
-% path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_20170717_atomlaser.m';
+path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_20170717_atomlaser.m';
 % path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_run1.m';
-path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_run2.m';
+% path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_run2.m';
 
 % load config
 run(path_config);
@@ -293,7 +293,7 @@ if vgraph>0
                 % annotate
                 axis equal;
                 box on;
-                ht=sprintf('(%d) %0.2g',jj,Nal(jj));
+                ht=sprintf('(%d) %0.2g / %0.2g',jj,Nal(jj),N0(jj));
                 title(ht);
             end
         end
@@ -368,6 +368,131 @@ if vgraph>1
 end
 clearvars nden3;
 
+
+%% Characterise AL
+cc=distinguishable_colors(pal_nseq);
+
+%%% YZ plane - radial density distribution
+r_edge=linspace(0,20e-3,100);   % radial edge for histogramming
+r_cent=r_edge(1:end-1)+0.5*diff(r_edge);
+r_diff=diff(r_edge);
+
+r_norm_area=2*pi*r_cent.*r_diff;
+
+% preallocate
+% average
+n_r=zeros(pal_nseq,length(r_cent));     % radial density
+pal_R=zeros(1,pal_nseq);
+
+hfig_rad_density=figure();
+hold on;
+
+for ii=1:pal_nseq
+    % get radial density profile
+    yz=vertcat(pal_zxy0{ii}{:});    % collate all shots in this PAL
+    yz=yz(:,[3,1]);     % cull X --> YZ
+    
+    r_vect=sqrt(sum(yz.^2,2));
+    
+    this_n_r=histcounts(r_vect,r_edge);     % get histogram counts
+    this_n_r=this_n_r/nshot;    % normalise by number of shots
+    this_n_r=this_n_r./r_norm_area;
+    
+    n_r(ii,:)=this_n_r;
+    
+    % get AL radius - HWHM
+    % get peak density and location
+    [nr_max,i_max]=max(this_n_r);
+    % get half-maximum point
+    [~,i_halfmax]=min(abs(this_n_r(i_max:end)-nr_max/2));
+    pal_R(ii)=r_cent(i_max+i_halfmax);      % get half maximum radius and store
+    
+    % plot
+    plot(r_cent,n_r(ii,:),'Color',cc(ii,:));     % profile 
+    scatter(pal_R(ii),n_r(ii,i_max+i_halfmax),'MarkerEdgeColor',cc(ii,:));   % half maximum point 
+end
+% annotate
+title('AL radial density profile');
+box on;
+xlabel('Radius [m]');
+ylabel('density [m$^{-2}$]');
+
+%%% X plane - transverse thickness
+x_edge=linspace(0,5e-3,100);   % radial edge for histogramming
+x_cent=x_edge(1:end-1)+0.5*diff(x_edge);
+x_diff=diff(x_edge);
+
+x_norm=x_diff;
+
+% preallocate
+n_x=zeros(pal_nseq,length(x_cent));     % radial density
+pal_Rx=zeros(1,pal_nseq);
+
+hfig_x_density=figure();
+hold on;
+
+for ii=1:pal_nseq
+    % get 1D projected X-density profile
+    x=vertcat(pal_zxy0{ii}{:});    % collate all shots in this PAL
+    
+    % cull about Z=0
+    %     x=x(:,[1,2]);       % cull Y
+%     x=abs(x(abs(x(:,1))<2e-3,2));
+
+    % 1D projection on X - gets smoother answer
+    x=abs(x(:,2));     % cull YZ --> X + use symmetry
+    
+    this_n_x=histcounts(x,x_edge);     % get histogram counts
+    this_n_x=this_n_x/nshot;    % normalise by number of shots
+    this_n_x=this_n_x./x_norm;
+    
+    n_x(ii,:)=this_n_x;
+    
+    % get HWHM in X
+    % get peak density and location
+    [nx_max,i_max]=max(this_n_x);
+    % get half-maximum point
+    [~,i_halfmax]=min(abs(this_n_x(i_max:end)-nx_max/2));
+    pal_Rx(ii)=x_cent(i_max+i_halfmax);      % get half maximum radius and store
+    
+    % plot
+    plot(x_cent,n_x(ii,:),'Color',cc(ii,:));     % profile 
+    scatter(pal_Rx(ii),n_x(ii,i_max+i_halfmax),'MarkerEdgeColor',cc(ii,:));   % half maximum point 
+end
+% annotate
+title('AL X density profile');
+box on;
+xlabel('X [m]');
+ylabel('density [m$^{-1}$]');
+
+%%% evaluate AL volume
+pal_vol=pi*pal_R.^2*2.*pal_Rx;
+pal_n_exp=Nal./pal_vol;
+
+figure();
+plot(1:pal_nseq,pal_n_exp,'o');
+xlabel('AL number');
+ylabel('AL density from experiment (arb. unit)');
+
+%% Check AL radius - N0, N_AL dependency
+% R: very good!
+hfig_Ral_N=figure();
+
+rerr=(N0_SE./N0);
+scaleexp=1/5;
+ploterr(N0.^(scaleexp),pal_R,rerr*(scaleexp),[],'hhxy',0);
+
+xlabel('$N_{0}^{1/5}$');
+ylabel('R HWHM$_{AL} [m]$');
+
+% X
+hfig_Xal_N=figure();
+
+scaleexp=1/5;
+ploterr(N0.^(scaleexp),pal_Rx,rerr*(scaleexp),[],'hhxy',0);
+
+xlabel('$N_{0}^{1/5}$');
+ylabel('X HWHM$_{AL} [m]$');
 
 %% Characterise shockwaves
 pal_data=pal_zxy0;      % a copy to safely pass data to analysis scripts (not functions!) 
