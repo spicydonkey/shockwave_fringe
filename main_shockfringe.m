@@ -375,9 +375,6 @@ cc=distinguishable_colors(pal_nseq);
 %%% YZ plane - radial density distribution
 r_edge=linspace(0,20e-3,100);   % radial edge for histogramming
 r_cent=r_edge(1:end-1)+0.5*diff(r_edge);
-r_diff=diff(r_edge);
-
-r_norm_area=2*pi*r_cent.*r_diff;
 
 % preallocate
 % average
@@ -389,14 +386,8 @@ hold on;
 
 for ii=1:pal_nseq
     % get radial density profile
-    yz=vertcat(pal_zxy0{ii}{:});    % collate all shots in this PAL
-    yz=yz(:,[3,1]);     % cull X --> YZ
-    
-    r_vect=sqrt(sum(yz.^2,2));
-    
-    this_n_r=histcounts(r_vect,r_edge);     % get histogram counts
+    this_n_r=al_rad_density(vertcat(pal_zxy0{ii}{:}),r_edge);
     this_n_r=this_n_r/nshot;    % normalise by number of shots
-    this_n_r=this_n_r./r_norm_area;
     
     n_r(ii,:)=this_n_r;
     
@@ -416,6 +407,34 @@ title('AL radial density profile');
 box on;
 xlabel('Radius [m]');
 ylabel('density [m$^{-2}$]');
+
+% evaluate shot-to-shot variability
+% coarse edges for single shot
+r_edge_shot=linspace(0,20e-3,20);
+r_cent_shot=r_edge_shot(1:end-1)+0.5*diff(r_edge_shot);
+
+figure(); hold on;
+
+shot_pal_R=cell(pal_nseq,1);
+for ii=1:pal_nseq
+    shot_pal_R{ii}=zeros(nshot,1);
+    for jj=1:nshot
+        this_n_r=al_rad_density(pal_zxy0{ii}{jj},r_edge_shot);
+        this_n_r=smooth(this_n_r,5);    % smooth out noise
+        
+        % get AL radius - HWHM
+        % get peak density and location
+        [nr_max,i_max]=max(this_n_r);
+        % get half-maximum point
+        [~,i_halfmax]=min(abs(this_n_r(i_max:end)-nr_max/2));
+        shot_pal_R{ii}(jj)=r_cent_shot(i_max+i_halfmax-1);      % get half maximum radius and store
+        
+        if rand()>0.999
+            plot(r_cent_shot,this_n_r,'.');     % profile
+            scatter(r_cent_shot(i_max+i_halfmax-1),this_n_r(i_max+i_halfmax-1));   % half maximum point
+        end
+    end
+end
 
 %%% X plane - transverse thickness
 x_edge=linspace(0,5e-3,100);   % radial edge for histogramming
@@ -583,7 +602,24 @@ end
 
 clearvars pal_zxy0;     % clean workspace
 
+%% theory
+m=6.647e-27;
+hbar=1.055e-34;
+tof=0.416;
+g=9.81;
+lambda=PEAK_DIFF_ALL;
 
+% approximate velocity
+v=pal_R/tof/10;    % gross overexaggeration?
+
+% approximate speed of sound
+c=4.2e-12*sqrt(g*tof^6*Nal./(pi*pal_R.^5.*pal_Rx));
+
+% plot
+figure();
+plot((2*pi)./lambda,(2*m/hbar*sqrt(v.^2-c.^2)),'o');
+xlabel('$2 m / hbar \cdot (v^2 - c^2)^{1/2}$');
+ylabel('$\lambda / 2 \pi$');
 %% end of code %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if verbose>0
     t_main_end=toc(t_main_start);   % end of code
