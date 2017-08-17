@@ -57,10 +57,10 @@ for pal_id=1:pal_nseq
     %%% evaluate 2D density
     nn2d=density2d(pal_rot,{yy_ed,zz_ed})';
     
-    
     %%% prepare 1D density profile through shockwave
     nn_raw=nn2d(id_zz,id_yy);                 % raw 2d density in region of interest
     nn1d_temp=mean(nn_raw,2);               % integrate thru perpendicular dir
+%     nn1d_temp=max(nn_raw,[],2);             % take peak density (very noisy)
     nn1d{pal_id}=smooth(nn1d_temp,nsmooth_1d_raw);       % simple smoothing - moving average
     
     %%% plot result
