@@ -3,7 +3,7 @@
 %
 
 %% CONFIG
-Ndpeakplot=3;    % number of fringe spacings to plot
+Ndpeakplot=2;    % number of fringe spacings to plot
 
 savefigs=0;
 path_save='C:\Users\HE BEC\Desktop\shock_summary';
@@ -31,23 +31,6 @@ for ii=1:Nexp
     varsummary={'MAX_PEAK_N', 'PEAK_DIFF_ALL', 'PEAK_DIFF_SD', 'Nal', 'Nal_SE', 'N0', 'N0_SE', 'Nfit'...
         'v','c','lambda'};
     S{ii}=load(fullfile(path_data,mlist{ii}),varsummary{:});
-    
-    % TODO below data analysis needs to be in main and will need to update
-    % summary
-%     %%% number in BEC
-%     % estimate error from "fitobject" - so poorly named - Nfit
-%     Nfit=S{ii}.fitobject;
-%     Nfitrelerr=Nfit.Coefficients.SE./Nfit.Coefficients.Estimate;   % N0, eta_RF fit err (rel)
-%     N0_SE_rel=sqrt(sum(Nfitrelerr.^2)).*(sqrt(1:length(S{ii}.N0))');     % rel error for N0
-%     N0_SE=S{ii}.N0.*N0_SE_rel;       % evaluate SE
-%     S{ii}.N0_SE=N0_SE;          % store into data structure
-    
-%     %%% number in AL
-%     Nal_SE_rel=N0_SE_rel';          % scales identically with r=eta_RF + N0(0) from formula
-%     Nal_SE=S{ii}.Nal.*Nal_SE_rel;	% evaluate SE from fit uncertainties
-%     % add in quadrature with detected number fluctuation SE
-%     Nal_SE=sqrt(S{ii}.AL_N_SD'.^2+Nal_SE.^2);
-%     S{ii}.Nal_SE=Nal_SE;        % store into data structure
 end
 % tidy structure
 S=cell2mat(S);      % S is now struct array
@@ -234,4 +217,3 @@ box on;
 % title(lgd,'Fringe spacing');
 xlabel('$2 m / hbar \cdot (v^2 - c^2)^{1/2}$');
 ylabel('$2 \pi / \lambda $ [mm$^{-1}$]');
-

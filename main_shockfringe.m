@@ -1,8 +1,11 @@
+%% clean workspace
+clear all; close all; clc;
+
 %% configs
 % User path to config
-path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_20170716_atomlaser.m';
+% path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_20170716_atomlaser.m';
 % path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_20170717_atomlaser.m';
-% path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_run1.m';
+path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_run1.m';
 % path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_run2.m';
 
 % load config
@@ -124,8 +127,14 @@ if vgraph>0
         plot_zxy(zxy,3e4,1,'k');
         axis equal;
         view(90,0);
+        
+        if configs.flags.savedata
+            figname=sprintf('raw_data');
+            saveas(hfig_all,[configs.files.dirout,'/',figname,'.png']);
+        end
     end
 end
+
 
 % get PAL
 pal_zxy=capture_pal(zxy,pal_z1,pal_dz,pal_nseq);
@@ -173,6 +182,11 @@ if vgraph>0
             box on;
             ht=sprintf('PAL: %d',ii);
             title(ht);
+        end
+        
+        if configs.flags.savedata
+            figname=sprintf('al_zxy');
+            saveas(hfig_pal,[configs.files.dirout,'/',figname,'.png']);
         end
     end
 end
@@ -255,8 +269,15 @@ if vgraph>0
         legend([hdata_pal_n(1),hfit]);
         xlabel('Pulse number');
         ylabel('Number in PAL');
+        
+        if configs.flags.savedata
+            figname=sprintf('N_al_fit');
+            saveas(hfig_atom_number,[configs.files.dirout,'/',figname,'.png']);
+        end
     end
 end
+
+
 
 %% PAL density image
 %%% 3D density profile (full)
@@ -295,6 +316,12 @@ if vgraph>0
                 box on;
                 ht=sprintf('(%d) %0.2g / %0.2g',jj,Nal(jj),N0(jj));
                 title(ht);
+            end
+            
+            if configs.flags.savedata
+                figname=sprintf('al_2D_%d',ii);
+                saveas(hfig_pal_nden2(ii),[configs.files.dirout,'/',figname,'.png']);
+                saveas(hfig_pal_nden2(ii),[configs.files.dirout,'/',figname,'.fig']);
             end
         end
     end
@@ -407,14 +434,18 @@ title('AL radial density profile');
 box on;
 xlabel('Radius [m]');
 ylabel('density [m$^{-2}$]');
+if configs.flags.savedata
+    figname=sprintf('al_R_size');
+    saveas(hfig_rad_density,[configs.files.dirout,'/',figname,'.png']);
+    saveas(hfig_rad_density,[configs.files.dirout,'/',figname,'.fig']);
+end
 
 % evaluate shot-to-shot variability
 % coarse edges for single shot
 r_edge_shot=linspace(0,20e-3,20);
 r_cent_shot=r_edge_shot(1:end-1)+0.5*diff(r_edge_shot);
 
-figure(); hold on;
-
+% figure(); hold on;
 shot_pal_R=cell(pal_nseq,1);
 for ii=1:pal_nseq
     shot_pal_R{ii}=zeros(nshot,1);
@@ -429,10 +460,10 @@ for ii=1:pal_nseq
         [~,i_halfmax]=min(abs(this_n_r(i_max:end)-nr_max/2));
         shot_pal_R{ii}(jj)=r_cent_shot(i_max+i_halfmax-1);      % get half maximum radius and store
         
-        if rand()>0.999
-            plot(r_cent_shot,this_n_r);     % profile
-            scatter(r_cent_shot(i_max+i_halfmax-1),this_n_r(i_max+i_halfmax-1));   % half maximum point
-        end
+%         if rand()>0.999
+%             plot(r_cent_shot,this_n_r);     % profile
+%             scatter(r_cent_shot(i_max+i_halfmax-1),this_n_r(i_max+i_halfmax-1));   % half maximum point
+%         end
     end
 end
 
@@ -449,7 +480,6 @@ pal_Rx=zeros(1,pal_nseq);
 
 hfig_x_density=figure();
 hold on;
-
 for ii=1:pal_nseq
     % get 1D projected X-density profile
     x=vertcat(pal_zxy0{ii}{:});    % collate all shots in this PAL
@@ -483,15 +513,20 @@ title('AL X density profile');
 box on;
 xlabel('X [m]');
 ylabel('density [m$^{-1}$]');
+if configs.flags.savedata
+    figname=sprintf('al_Rx_size');
+    saveas(hfig_x_density,[configs.files.dirout,'/',figname,'.png']);
+    saveas(hfig_x_density,[configs.files.dirout,'/',figname,'.fig']);
+end
 
 %%% evaluate AL volume
 pal_vol=pi*pal_R.^2*2.*pal_Rx;
 pal_n_exp=Nal./pal_vol;
 
-figure();
-plot(1:pal_nseq,pal_n_exp,'o');
-xlabel('AL number');
-ylabel('AL density from experiment (arb. unit)');
+% figure();
+% plot(1:pal_nseq,pal_n_exp,'o');
+% xlabel('AL number');
+% ylabel('AL density from experiment (arb. unit)');
 
 %% Check AL radius - N0, N_AL dependency
 % R: very good!
@@ -571,7 +606,10 @@ AL_N_SD=std(AL_N_SUB,0,2);      % SD PAL number
 % need to add in quadrature with fit uncertainty
 Nal_SE=sqrt(AL_N_SD'.^2+Nal_SE_fit.^2);
 
-% Plot with errors
+clearvars pal_zxy0;     % clean workspace
+
+%% Summary - plot with errors
+%%% lambda vs number in atom laser
 vgraph=configs.flags.graphics;   % reset graphics flag
 if vgraph>0
     linewidth=1.5;
@@ -590,7 +628,6 @@ if vgraph>0
     end
     box on;
     lgd=legend(p);
-    title(lgd,'Fringe spacing');
     xlabel('$N_{AL}$');
     ylabel('Fringe spacing [mm]');
     
@@ -601,7 +638,33 @@ if vgraph>0
     end
 end
 
-clearvars pal_zxy0;     % clean workspace
+%%% lambda vs number in condensate
+if vgraph>0
+    linewidth=1.5;
+    namearray={'LineWidth','MarkerFaceColor'};      % error bar graphics properties
+    valarray={linewidth,'w'};                 % 90 deg (normal) data
+    
+    hfig_dpeak_vs_N0=figure();
+    p=zeros(1,(MAX_PEAK_N-1));      % array to store figure objects for selective legend
+    for ii=1:(MAX_PEAK_N-1)
+        hold on;
+        hdata_pal_n=ploterr(N0,PEAK_DIFF_ALL(:,ii),N0_SE,PEAK_DIFF_SD(:,ii),'o','hhxy',0);
+        set(hdata_pal_n(1),namearray,valarray,'Color',CC2(ii,:),'DisplayName',sprintf('%d',ii));
+        set(hdata_pal_n(2),namearray,valarray,'Color',CC2(ii,:),'DisplayName','');
+        set(hdata_pal_n(3),namearray,valarray,'Color',CC2(ii,:),'DisplayName','');
+        p(ii)=hdata_pal_n(1);
+    end
+    box on;
+    lgd=legend(p);
+    xlabel('$N_{0}$');
+    ylabel('Fringe spacing [mm]');
+    
+    if configs.flags.savedata
+        figname=sprintf('dpeak_vs_N0');
+        saveas(hfig_dpeak_vs_N0,[configs.files.dirout,'/',figname,'.png']);
+        saveas(hfig_dpeak_vs_N0,[configs.files.dirout,'/',figname,'.fig']);
+    end
+end
 
 %% theory
 m=6.647e-27;
@@ -624,7 +687,7 @@ c=4.2e-12*sqrt(g*tof^6*Nal./(pi*pal_R.^5.*pal_Rx));
 c=c';
 
 % plot
-figure();
+hfig_theory=figure();
 npeak=size(lambda,2);
 for ii=1:npeak
     plot((2*m/hbar*sqrt(v(:,ii).^2-c.^2)),(2*pi)./lambda(:,ii),'o');
@@ -633,6 +696,11 @@ end
 xlabel('$2 m / hbar \cdot (v^2 - c^2)^{1/2}$');
 ylabel('$2 \pi / \lambda $ [mm$^{-1}$]');
 
+if configs.flags.savedata
+    figname=sprintf('theory_curve');
+    saveas(hfig_theory,[configs.files.dirout,'/',figname,'.png']);
+    saveas(hfig_theory,[configs.files.dirout,'/',figname,'.fig']);
+end
 
 %% end of code %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if verbose>0
