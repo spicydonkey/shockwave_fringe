@@ -523,6 +523,7 @@ main_process_pal;
 DemoFringePeak;
 
 % store results - overwritten in current implementation of bootstrap
+PEAK_POS_ALL=peak_pos;
 PEAK_DIFF_ALL=peak_diff;
 MAX_PEAK_N=max_peak_n;
 CC2=distinguishable_colors(MAX_PEAK_N-1);
@@ -610,16 +611,21 @@ g=9.81;
 lambda=PEAK_DIFF_ALL;
 
 % approximate velocity
-v=pal_R/tof/10;    % gross overexaggeration?
+v=pal_R/tof;    % gross overexaggeration?
+% rv_firstfringe=(1e-3*peak_pos(:,1)./pal_R');
+% v=v*rv_firstfringe;          % scale v to ~first fringe location
+v=v/4;          % approximation
 
 % approximate speed of sound
 c=4.2e-12*sqrt(g*tof^6*Nal./(pi*pal_R.^5.*pal_Rx));
 
 % plot
 figure();
-plot((2*pi)./lambda,(2*m/hbar*sqrt(v.^2-c.^2)),'o');
+plot((2*m/hbar*sqrt(v.^2-c.^2)),(2*pi)./lambda,'o');
 xlabel('$2 m / hbar \cdot (v^2 - c^2)^{1/2}$');
-ylabel('$\lambda / 2 \pi$');
+ylabel('$2 \pi / \lambda $ [mm$^{-1}$]');
+
+
 %% end of code %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if verbose>0
     t_main_end=toc(t_main_start);   % end of code
