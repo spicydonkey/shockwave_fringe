@@ -1,7 +1,7 @@
 %% configs
 % User path to config
-% path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_20170716_atomlaser.m';
-path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_20170717_atomlaser.m';
+path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_20170716_atomlaser.m';
+% path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_20170717_atomlaser.m';
 % path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_run1.m';
 % path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_run2.m';
 
@@ -396,11 +396,11 @@ for ii=1:pal_nseq
     [nr_max,i_max]=max(this_n_r);
     % get half-maximum point
     [~,i_halfmax]=min(abs(this_n_r(i_max:end)-nr_max/2));
-    pal_R(ii)=r_cent(i_max+i_halfmax);      % get half maximum radius and store
+    pal_R(ii)=r_cent(i_max+i_halfmax-1);      % get half maximum radius and store
     
     % plot
     plot(r_cent,n_r(ii,:),'Color',cc(ii,:));     % profile 
-    scatter(pal_R(ii),n_r(ii,i_max+i_halfmax),'MarkerEdgeColor',cc(ii,:));   % half maximum point 
+    scatter(pal_R(ii),n_r(ii,i_max+i_halfmax-1),'MarkerEdgeColor',cc(ii,:));   % half maximum point 
 end
 % annotate
 title('AL radial density profile');
@@ -430,7 +430,7 @@ for ii=1:pal_nseq
         shot_pal_R{ii}(jj)=r_cent_shot(i_max+i_halfmax-1);      % get half maximum radius and store
         
         if rand()>0.999
-            plot(r_cent_shot,this_n_r,'.');     % profile
+            plot(r_cent_shot,this_n_r);     % profile
             scatter(r_cent_shot(i_max+i_halfmax-1),this_n_r(i_max+i_halfmax-1));   % half maximum point
         end
     end
@@ -472,11 +472,11 @@ for ii=1:pal_nseq
     [nx_max,i_max]=max(this_n_x);
     % get half-maximum point
     [~,i_halfmax]=min(abs(this_n_x(i_max:end)-nx_max/2));
-    pal_Rx(ii)=x_cent(i_max+i_halfmax);      % get half maximum radius and store
+    pal_Rx(ii)=x_cent(i_max+i_halfmax-1);      % get half maximum radius and store
     
     % plot
     plot(x_cent,n_x(ii,:),'Color',cc(ii,:));     % profile 
-    scatter(pal_Rx(ii),n_x(ii,i_max+i_halfmax),'MarkerEdgeColor',cc(ii,:));   % half maximum point 
+    scatter(pal_Rx(ii),n_x(ii,i_max+i_halfmax-1),'MarkerEdgeColor',cc(ii,:));   % half maximum point 
 end
 % annotate
 title('AL X density profile');
@@ -608,20 +608,28 @@ m=6.647e-27;
 hbar=1.055e-34;
 tof=0.416;
 g=9.81;
-lambda=PEAK_DIFF_ALL;
+lambda=PEAK_DIFF_ALL;       % fringe spacing in m
+R_fringe=PEAK_POS_ALL;      % location of fringe
 
 % approximate velocity
-v=pal_R/tof;    % gross overexaggeration?
+v=pal_R/tof;    % velocity at AL radius
+r_fringe=mean((1e-3*R_fringe)./pal_R',1,'omitnan');   % ratio of distance from ith fringe to 
+v=v'*r_fringe;   % approx velocity at shock wave (row - AL; col - fringe)
 % rv_firstfringe=(1e-3*peak_pos(:,1)./pal_R');
 % v=v*rv_firstfringe;          % scale v to ~first fringe location
-v=v/4;          % approximation
+% v=v/4;          % approximation
 
 % approximate speed of sound
 c=4.2e-12*sqrt(g*tof^6*Nal./(pi*pal_R.^5.*pal_Rx));
+c=c';
 
 % plot
 figure();
-plot((2*m/hbar*sqrt(v.^2-c.^2)),(2*pi)./lambda,'o');
+npeak=size(lambda,2);
+for ii=1:npeak
+    plot((2*m/hbar*sqrt(v(:,ii).^2-c.^2)),(2*pi)./lambda(:,ii),'o');
+    hold on;
+end
 xlabel('$2 m / hbar \cdot (v^2 - c^2)^{1/2}$');
 ylabel('$2 \pi / \lambda $ [mm$^{-1}$]');
 

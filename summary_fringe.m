@@ -3,12 +3,12 @@
 %
 
 %% CONFIG
-Ndpeakplot=2;    % number of fringe spacings to plot
+Ndpeakplot=3;    % number of fringe spacings to plot
 
 savefigs=0;
 path_save='C:\Users\HE BEC\Desktop\shock_summary';
 
-path_data='C:\Users\HE BEC\Documents\lab\shockwave\summary\data\ver2';
+path_data='C:\Users\HE BEC\Documents\lab\shockwave\summary\data\ver4';
 data_regexp='run_*.mat';
 
 datetimestr=datestr(datetime,'yyyymmdd_HHMMSS');    % timestamp when function called
@@ -28,7 +28,8 @@ S=cell(Nexp,1);     % S is cell array of structs
 for ii=1:Nexp
     % load vars:
         % MAX_PEAK_N, Nal, AL_N_SD PEAK_DIFF_ALL, PEAK_DIFF_SD, N0
-    varsummary={'MAX_PEAK_N', 'PEAK_DIFF_ALL', 'PEAK_DIFF_SD', 'Nal', 'Nal_SE', 'N0', 'N0_SE', 'Nfit'};
+    varsummary={'MAX_PEAK_N', 'PEAK_DIFF_ALL', 'PEAK_DIFF_SD', 'Nal', 'Nal_SE', 'N0', 'N0_SE', 'Nfit'...
+        'v','c','lambda'};
     S{ii}=load(fullfile(path_data,mlist{ii}),varsummary{:});
     
     % TODO below data analysis needs to be in main and will need to update
@@ -134,29 +135,35 @@ end
 % try:
 %%% density (avg)
 % TODO - this changes in AL - currently assumes uniform density
-% nal ~ N_al ^ alpha * N_BEC ^ beta
+% nal_sc ~ N_al ^ alpha * N_BEC ^ beta
 alpha=1;
 beta=-3/5;
 
-%%% speed of sound (avg)
+%%% speed of sound (scaled) (avg)
 % TODO - this changes in AL
-% c ~ nal ^ gamma
+% c_sc ~ nal_sc ^ gamma
 gamma=1/2;
 
 %%% collision speed (avg)
 % TODO - calculated for fringes!
-% v ~ CONST (FOR NOW)
+% v_sc ~ CONST (FOR NOW)
 
 %%% mach number (avg)
-% mach ~ v / c
+% mach_sc ~ v_sc / c_sc
+
+%%% v (flow velocity) exp
+% v_sc ~ radius_of_AL / TOF
+
+%%% c (speed of sound scaled) exp
+% c_exp ~ 4.2 e-12 * sqrt( Nal / vol_al(t: g*t=vmax))
 
 for ii=1:Nexp
     % density
-    S(ii).nal=(S(ii).Nal'.^alpha).*(S(ii).N0.^beta);
-    S(ii).c=S(ii).nal.^gamma;
-    S(ii).v=1;
-%     S(ii).mach=(S(ii).N0.^(3/10)).*(S(ii).Nal'.^(-1/2));
-    S(ii).mach=S(ii).v./S(ii).c;
+    S(ii).nal_sc=(S(ii).Nal'.^alpha).*(S(ii).N0.^beta);    
+    S(ii).c_sc=S(ii).nal_sc.^gamma;        % scaled C
+    S(ii).v_sc=1;
+%     S(ii).mach_sc=(S(ii).N0.^(3/10)).*(S(ii).Nal'.^(-1/2));
+    S(ii).mach_sc=S(ii).v_sc./S(ii).c_sc;
 end
 
 hfig_dpeak_scaled=figure();
@@ -173,9 +180,9 @@ for ii=1:Nexp
     %     p=zeros(1,ndpeak);
     for jj=1:ndpeak
         hold on;
-        hdata_pal_n=ploterr(1./thisS.mach,thisS.PEAK_DIFF_ALL(:,jj).*S(ii).c,[],[],mm{ii},'hhxy',0);
-%                 hdata_pal_n=ploterr(thisS.nal,thisS.PEAK_DIFF_ALL(:,jj).*S(ii).c,[],[],mm{ii},'hhxy',0);
-%         hdata_pal_n=ploterr(thisS.nal,thisS.PEAK_DIFF_ALL(:,jj),[],[],mm{ii},'hhxy',0);
+        hdata_pal_n=ploterr(thisS.mach_sc,thisS.PEAK_DIFF_ALL(:,jj).*S(ii).c_sc,[],[],mm{ii},'hhxy',0);
+%                 hdata_pal_n=ploterr(thisS.nal_sc,thisS.PEAK_DIFF_ALL(:,jj).*S(ii).c_sc,[],[],mm{ii},'hhxy',0);
+%         hdata_pal_n=ploterr(thisS.nal_sc,thisS.PEAK_DIFF_ALL(:,jj),[],[],mm{ii},'hhxy',0);
         set(hdata_pal_n(1),namearray,valarray,'Color',cc(jj,:),'MarkerSize',6,'DisplayName',sprintf('%d',jj));
 %         set(hdata_pal_n(2),namearray,valarray,'Color',cc(jj,:),'DisplayName','');
 %         set(hdata_pal_n(3),namearray,valarray,'Color',cc(jj,:),'DisplayName','');
@@ -188,7 +195,7 @@ box on;
 % xlabel('$\tilde{\rho}_{AL}$');
 % ylabel('Reduced fringe spacing');
 xlabel('inverse Mach number');
-ylabel('$\lambda \cdot c$');
+ylabel('$\lambda \cdot c_sc$');
 % 
 % %%% save fig
 % if savefigs>0
@@ -196,3 +203,35 @@ ylabel('$\lambda \cdot c$');
 %     saveas(hfig_dpeak_vs_N0,fullfile(path_save,[figname,'.png']));
 %     saveas(hfig_dpeak_vs_N0,fullfile(path_save,[figname,'.fig']));
 % end
+
+%% theory
+% define constants
+m=6.647e-27;
+hbar=1.055e-34;
+tof=0.416;
+g=9.81;
+
+hfig_dpeak_theory=figure();
+
+for ii=1:Nexp
+    thisS=S(ii);
+    ndpeak=(thisS.MAX_PEAK_N-1);
+    if Ndpeakplot<ndpeak
+        ndpeak=Ndpeakplot;
+    end
+    %     p=zeros(1,ndpeak);
+    for jj=1:ndpeak
+        hold on;
+        hdata_theory=ploterr((2*m/hbar*sqrt((thisS.v(:,jj)).^2-(thisS.c).^2)),(2*pi)./thisS.lambda(:,jj),[],[],mm{ii},'hhxy',0);
+        set(hdata_theory(1),namearray,valarray,'Color',cc(jj,:),'MarkerSize',6,'DisplayName',sprintf('%d',jj));
+%         set(hdata_theory(2),namearray,valarray,'Color',cc(jj,:),'DisplayName','');
+%         set(hdata_theory(3),namearray,valarray,'Color',cc(jj,:),'DisplayName','');
+%         p(jj)=hdata_theory(1);
+    end
+end
+box on;
+% lgd=legend(p);
+% title(lgd,'Fringe spacing');
+xlabel('$2 m / hbar \cdot (v^2 - c^2)^{1/2}$');
+ylabel('$2 \pi / \lambda $ [mm$^{-1}$]');
+
