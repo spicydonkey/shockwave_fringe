@@ -1,7 +1,7 @@
 %% configs
 %% main_shockfringe
 configs.flags.verbose=2;
-configs.flags.savedata=1;
+configs.flags.savedata=0;
 configs.flags.archive_txy=1;
 configs.flags.force_all_stages=0;
 configs.flags.graphics=1;
@@ -69,6 +69,6 @@ smoothtype=1;   % smoothing is off
 rng('shuffle');
 
 % data subset size
-bootstrap_ndata=0.05;    % ratio subset size to all
+bootstrap_ndata=0.1;    % ratio subset size to all
 % number of sampling
-bootstrap_Nsamp=200;
+bootstrap_Nsamp=100;

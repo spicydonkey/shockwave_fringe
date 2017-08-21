@@ -4,7 +4,7 @@ clear all; close all; clc;
 %% configs
 % User path to config
 % path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_20170716_atomlaser.m';
-path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_20170717_atomlaser.m';
+% path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_20170717_atomlaser.m';
 % path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_run1.m';
 % path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_run2.m';
 
@@ -256,7 +256,7 @@ N0_err_fit_rel=sqrt(N0_err_fit_rel.^2+fit_err_rel(1)^2);    % add contribution f
 N0_err_fit=N0.*N0_err_fit_rel;        % evaluate fit SE error (abs)
 
 % AL
-Nal_err_fit_rel=N0_err_fit_rel';  	% formula for Nal scales identically with N0
+Nal_err_fit_rel=N0_err_fit_rel;  	% formula for Nal scales identically with N0
 Nal_err_fit=Nal.*Nal_err_fit_rel;	% evaluate SE from fit uncertainties
 % later summed in quad with detected num SE for total err
 
@@ -597,7 +597,7 @@ for ii_bootstrap=1:bootstrap_Nsamp
     Nal_subset(:,ii_bootstrap)=cellfun(@(x) mean(cellfun(@(y) size(y,1),x)),pal_data);
     
     % save result separately
-    lambda_ff_subset_cell{ii_bootstrap}=peak_diff;
+    lambda_ff_subset_cell{ii_bootstrap}=1e-3*peak_diff;
 end
 % evaluate SD of analysis outupt
 % restructure subset outputs into array
@@ -613,7 +613,7 @@ lambda_ff_err=lambda_ff_err(:,1:(N_peak_max-1));   % resize to main result
 % PAL number uncertainty from bootstrapping data subsets
 Nal_avg_sub=mean(Nal_subset,2);         % avg PAL number
 Nal_err_sub=std(Nal_subset,0,2);        % stdev PAL number from bootstrap
-Nal_err_tot=sqrt(Nal_err_sub'.^2+Nal_err_fit.^2);    % add in quadrature with fit uncertainty
+Nal_err_tot=sqrt(Nal_err_sub.^2+Nal_err_fit.^2);    % add in quadrature with fit uncertainty
 
 clearvars pal_zxy0;     % clean workspace
 
@@ -629,7 +629,7 @@ if vgraph>0
     p=zeros(1,(N_peak_max-1));      % array to store figure objects for selective legend
     for ii=1:(N_peak_max-1)
         hold on;
-        hdata_pal_n=ploterr(Nal,1e3*lambda_ff(:,ii),Nal_err_tot,lambda_ff_err(:,ii),'o','hhxy',0);
+        hdata_pal_n=ploterr(Nal,1e3*lambda_ff(:,ii),Nal_err_tot,1e3*lambda_ff_err(:,ii),'o','hhxy',0);
         set(hdata_pal_n(1),namearray,valarray,'Color',cc_all(ii,:),'DisplayName',sprintf('%d',ii));
         set(hdata_pal_n(2),namearray,valarray,'Color',cc_all(ii,:),'DisplayName','');
         set(hdata_pal_n(3),namearray,valarray,'Color',cc_all(ii,:),'DisplayName','');
@@ -657,7 +657,7 @@ if vgraph>0
     p=zeros(1,(N_peak_max-1));      % array to store figure objects for selective legend
     for ii=1:(N_peak_max-1)
         hold on;
-        hdata_pal_n=ploterr(N0,1e3*lambda_ff(:,ii),N0_err_fit,lambda_ff_err(:,ii),'o','hhxy',0);
+        hdata_pal_n=ploterr(N0,1e3*lambda_ff(:,ii),N0_err_fit,1e3*lambda_ff_err(:,ii),'o','hhxy',0);
         set(hdata_pal_n(1),namearray,valarray,'Color',cc_all(ii,:),'DisplayName',sprintf('%d',ii));
         set(hdata_pal_n(2),namearray,valarray,'Color',cc_all(ii,:),'DisplayName','');
         set(hdata_pal_n(3),namearray,valarray,'Color',cc_all(ii,:),'DisplayName','');
