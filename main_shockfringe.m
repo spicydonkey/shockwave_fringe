@@ -568,8 +568,8 @@ main_process_pal;
 DemoFringePeak;
 
 % store results - overwritten in current implementation of bootstrap
-Rff_peak=peak_pos;
-lambda_ff=peak_diff;
+Rff_peak=1e-3*peak_pos;     % peak positions (radial) [m]
+lambda_ff=1e-3*peak_diff;        % peak spacing [m]
 N_peak_max=max_peak_n;
 cc_all=distinguishable_colors(N_peak_max-1);
 
@@ -629,7 +629,7 @@ if vgraph>0
     p=zeros(1,(N_peak_max-1));      % array to store figure objects for selective legend
     for ii=1:(N_peak_max-1)
         hold on;
-        hdata_pal_n=ploterr(Nal,lambda_ff(:,ii),Nal_err_tot,lambda_ff_err(:,ii),'o','hhxy',0);
+        hdata_pal_n=ploterr(Nal,1e3*lambda_ff(:,ii),Nal_err_tot,lambda_ff_err(:,ii),'o','hhxy',0);
         set(hdata_pal_n(1),namearray,valarray,'Color',cc_all(ii,:),'DisplayName',sprintf('%d',ii));
         set(hdata_pal_n(2),namearray,valarray,'Color',cc_all(ii,:),'DisplayName','');
         set(hdata_pal_n(3),namearray,valarray,'Color',cc_all(ii,:),'DisplayName','');
@@ -657,7 +657,7 @@ if vgraph>0
     p=zeros(1,(N_peak_max-1));      % array to store figure objects for selective legend
     for ii=1:(N_peak_max-1)
         hold on;
-        hdata_pal_n=ploterr(N0,lambda_ff(:,ii),N0_err_fit,lambda_ff_err(:,ii),'o','hhxy',0);
+        hdata_pal_n=ploterr(N0,1e3*lambda_ff(:,ii),N0_err_fit,lambda_ff_err(:,ii),'o','hhxy',0);
         set(hdata_pal_n(1),namearray,valarray,'Color',cc_all(ii,:),'DisplayName',sprintf('%d',ii));
         set(hdata_pal_n(2),namearray,valarray,'Color',cc_all(ii,:),'DisplayName','');
         set(hdata_pal_n(3),namearray,valarray,'Color',cc_all(ii,:),'DisplayName','');
@@ -684,8 +684,8 @@ npeak=size(lambda_nf,2);
 
 %%% approximate velocity
 v_al_max=pal_R/tof;    % velocity at AL radius
-% r_fringe=mean((1e-3*Rff_peak)./pal_R,1,'omitnan');   % ratio of distance from ith fringe to 
-r_fringe=(1e-3*Rff_peak)./pal_R;   % ratio of distance from ith fringe to 
+% r_fringe=mean(Rff_peak./pal_R,1,'omitnan');   % ratio of distance from ith fringe to 
+r_fringe=Rff_peak./pal_R;   % ratio of distance from ith fringe to 
 v=v_al_max.*r_fringe;   % approx velocity at shock wave (row - AL; col - fringe)
 
 %%% approximate speed of sound
@@ -696,7 +696,7 @@ v=v_al_max.*r_fringe;   % approx velocity at shock wave (row - AL; col - fringe)
 nden_Rff=NaN(pal_nseq,npeak);     % AL far-field density at peak
 for ii=1:pal_nseq
     for jj=1:npeak
-        [dRff_min,iRff]=min(abs(1e-3*Rff_peak(ii,jj)-r_cent));
+        [dRff_min,iRff]=min(abs(Rff_peak(ii,jj)-r_cent));
         nden_Rff(ii,jj)=nden_r(ii,iRff);    % get density
     end
 end
@@ -706,8 +706,9 @@ c=4.2e-12*sqrt(nden_Rnf);           % evaluate speed of sound
 %%% plot
 hfig_theory=figure();
 for ii=1:npeak
-%     plot((2*m/hbar*sqrt(v(:,ii).^2-c.^2)),1e3*(2*pi)./lambda_nf(:,ii),'o');
-    plot((2*m/hbar*sqrt(v(:,ii).^2-c(:,ii).^2)),1e3*(2*pi)./lambda_nf(:,ii),'o');
+%     plot((2*m/hbar*sqrt(v(:,ii).^2-c.^2)),(2*pi)./lambda_nf(:,ii),'o');
+%     % for uniform speed of sound approx
+    plot((2*m/hbar*sqrt(v(:,ii).^2-c(:,ii).^2)),(2*pi)./lambda_nf(:,ii),'o');
     hold on;
 end
 xlabel('$2 m / hbar \cdot (v^2 - c^2)^{1/2}$');
