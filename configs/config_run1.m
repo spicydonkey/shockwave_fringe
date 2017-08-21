@@ -7,8 +7,12 @@ configs.flags.force_all_stages=0;
 configs.flags.graphics=1;
 configs.flags.build_txy=1;
 
-configs.misc.vel_z=9.8*0.416;    % atom free-fall vert v at detector hit for T-to-Z conversion;
-configs.misc.det_qe=0.1;
+configs.misc.hbar=1.055e-34;    % reduced Planck constant [Js]
+configs.misc.m=6.647e-27;       % mass of helium [kg]
+configs.misc.tof=0.416;         % free-fall TOF from trap to detector [s]
+configs.misc.g=9.807;           % acceleration due to gravity [ms^-2]
+configs.misc.vel_z=configs.misc.g*configs.misc.tof; % free-fall velocity at detection [m/s]
+configs.misc.det_qe=0.1;        % detector quantum efficiency
 
 configs.files.path='\\AMPLPC29\He BEC Archive\EXPERIMENT-DATA\AL_Shockwaves\RF_raman_combined\run1\Run1 data\Run1 background no raman\d';
 

@@ -1,14 +1,18 @@
 %% configs
 %% main_shockfringe
-configs.flags.verbose=0;
-configs.flags.savedata=1;
+configs.flags.verbose=2;
+configs.flags.savedata=0;
 configs.flags.archive_txy=1;
 configs.flags.force_all_stages=0;
 configs.flags.graphics=1;
 configs.flags.build_txy=1;
 
-configs.misc.vel_z=9.8*0.416;    % atom free-fall vert v at detector hit for T-to-Z conversion;
-configs.misc.det_qe=0.1;
+configs.misc.hbar=1.055e-34;    % reduced Planck constant [Js]
+configs.misc.m=6.647e-27;       % mass of helium [kg]
+configs.misc.tof=0.416;         % free-fall TOF from trap to detector [s]
+configs.misc.g=9.807;           % acceleration due to gravity [ms^-2]
+configs.misc.vel_z=configs.misc.g*configs.misc.tof; % free-fall velocity at detection [m/s]
+configs.misc.det_qe=0.1;        % detector quantum efficiency
 
 configs.files.path='\\AMPLPC29\Users\TDC_user\ProgramFiles\my_read_tdc_gui_v1.0.1\dld_output\20170716_atomlaser\d';
 % configs.files.path='C:\Users\HE BEC\Documents\lab\shockwave\20170716_atomlaser\d';
@@ -20,7 +24,7 @@ configs.files.dirout=fullfile(configs.files.dir_data,'output');      % output di
 
 configs.load.version=1.1;         % TXY load stage version number
 
-configs.load.id=1:3615;         % file id numbers to use for analysis
+configs.load.id=1:3615; %3615;         % file id numbers to use for analysis
 configs.load.mincount=1000;         % min counts in window - 0 for no min
 configs.load.maxcount=Inf;          % max counts in window - Inf for no max
 
