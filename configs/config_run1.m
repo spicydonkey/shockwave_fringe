@@ -1,6 +1,6 @@
 %% configs
 %% main_shockfringe
-configs.flags.verbose=1;
+configs.flags.verbose=2;
 configs.flags.savedata=1;
 configs.flags.archive_txy=1;
 configs.flags.force_all_stages=0;

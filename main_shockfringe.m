@@ -4,8 +4,8 @@ clear all; close all; clc;
 %% configs
 % User path to config
 % path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_20170716_atomlaser.m';
-% path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_20170717_atomlaser.m';
-path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_run1.m';
+path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_20170717_atomlaser.m';
+% path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_run1.m';
 % path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_run2.m';
 
 % load config
@@ -21,9 +21,16 @@ vgraph=configs.flags.graphics;
 t_main_start=tic;   % for reporting process duration
 datetimestr=datestr(datetime,'yyyymmdd_HHMMSS');    % timestamp when function called
 configs.files.dirout=[configs.files.dirout,'_',datetimestr];
+
+HFIG={};        % cell array for all figures generated
+
+% experimental consts/params
 vz=configs.misc.vel_z;
 det_qe=configs.misc.det_qe;
-HFIG={};        % cell array for all figures generated
+tof=configs.misc.tof;
+hbar=configs.misc.hbar;
+m=configs.misc.m;
+g=configs.misc.g;
 
 %%% PAL
 pal_z1=configs.pal.t1*vz;
@@ -32,9 +39,6 @@ pal_nseq=configs.pal.n;
 
 plot_ncol=ceil(sqrt(pal_nseq));         % subplot num cols
 plot_nrow=ceil(pal_nseq/plot_ncol);     % subplot num rows
-
-%%% plotting
-cc=distinguishable_colors(pal_nseq);	% colors for plotting against PAL properties
 
 %%% voxels
 % construct edge/center vectors for each dim
@@ -118,7 +122,7 @@ nshot=size(txy,1);
 
 % txy-->zxy
 zxy=cellfun(@(x) double(x.*repmat([vz,1,1],[size(x,1),1])),txy,'UniformOutput',false);
-clearvars txy;      % clear the biggest data
+clearvars txy;      % clear the biggest data from memory
 
 % check loaded data
 if vgraph>0
@@ -135,10 +139,8 @@ if vgraph>0
     end
 end
 
-
 % get PAL
 pal_zxy=capture_pal(zxy,pal_z1,pal_dz,pal_nseq);
-
 clearvars zxy;      % delete zxy - not used from here
 
 %%% centre PAL to a common mean position
@@ -156,7 +158,16 @@ for ii=1:pal_nseq
     this_pal_cent_array=vertcat(this_pal_cent_array{:});    % form into nshotx3 array
     
     pal_cent_avg(ii,:)=mean(this_pal_cent_array,1);     % average zxy center in this pulse
-    pal_cent_std(ii,:)=std(this_pal_cent_array);        % uncertainty in the mean centre position
+    pal_cent_std(ii,:)=std(this_pal_cent_array);        % fluctuations in the mean centre position
+end
+
+if verbose>0
+    % summary
+    disp('------------------------PAL centering------------------------');
+    for ii=1:pal_nseq
+    fprintf('(%d) STDEV(CENTER): [%0.2e %0.2e %0.2e]\n',ii,pal_cent_std(ii,:));
+    end
+    disp('-------------------------------------------------------------');
 end
 
 % centre PAL
@@ -165,8 +176,6 @@ for ii=1:pal_nseq
     % shift to evaluated centre
     pal_zxy0{ii}=cellfun(@(x) x-repmat(pal_cent_avg(ii,:),[size(x,1),1]),pal_zxy{ii},'UniformOutput',false);
 end
-
-% clean workspace
 clearvars pal_zxy;
 
 % summarise captured PALs
@@ -194,23 +203,26 @@ end
 %% Process PAL
 %%% Evaluate atom numbers
 % number in PAL
-pal_n=zeros(pal_nseq,2);    % preallocate; format: [avg, std]
+num_in_pal=zeros(pal_nseq,2);    % preallocate; format: [avg, std]
 for ii=1:pal_nseq
-    this_pal_n=cellfun(@(x) size(x,1),pal_zxy0{ii});    % number in nth PAL 'detected'
+    this_num_in_pal=cellfun(@(x) size(x,1),pal_zxy0{ii});    % number in nth PAL 'detected'
     % estimate actual number in PAL - error in SD
-    pal_n(ii,:)=(1/det_qe)*[mean(this_pal_n),std(this_pal_n)];      
+    num_in_pal(ii,:)=(1/det_qe)*[mean(this_num_in_pal),std(this_num_in_pal)];
 end
 % PAL number uncertainty in SE
-pal_n(:,2)=pal_n(:,2)/sqrt(nshot);
+num_in_pal(:,2)=num_in_pal(:,2)/sqrt(nshot);
 
-%%%% fit to estimate number in condensate (N0) and outcoupling efficiency
-% (eff_oc)
-% n_i=2:pal_nseq;     % TODO pulse numbers to use - don't use sat'd
-n_i=configs.pal.nfitstart:pal_nseq;     % pulses to do fit
-param0=[1e5,0.1];   % estimate for initial param
-
-modelfun='y~N0*(1-r)^(x1-1)*r';     % x1: PAL index; N0: BEC number; r: outcoupling frac; y: number in x1^th PAL; 
+%%%% fit to estimate number in condensate and outcoupling efficiency
+% MODEL:
+%   x1: PAL index
+%   N0: number in BEC before x1^th PAL
+%   r: AL outcoupling frac
+%   y: number in x1^th PAL; 
+al_modelfun='y~N0*(1-r)^(x1-1)*r';     
 coeffnames={'N0','r'};
+
+idx_al_fit=configs.pal.nfitstart:pal_nseq;     % pulses to do fit
+param0=[1e5,0.1];   % estimate for initial param
 
 % define optimiser
 fo = statset('TolFun',10^-6,...
@@ -219,45 +231,46 @@ fo = statset('TolFun',10^-6,...
     'UseParallel',0);
 
 % do the fit
-Nfit=fitnlm(n_i,pal_n(n_i,1),modelfun,param0,...
+N_al_fit=fitnlm(idx_al_fit,num_in_pal(idx_al_fit,1),al_modelfun,param0,...
     'CoefficientNames',coeffnames,'Options',fo);
 
 if verbose>0
-    disp(Nfit);
+    disp(N_al_fit);
 end
 
 % get fit results
-paramfit=[Nfit.Coefficients.Estimate,Nfit.Coefficients.SE];
-Npal_fit.x=1:pal_nseq;
-Npal_fit.y=feval(Nfit,Npal_fit.x);
+al_paramfit=[N_al_fit.Coefficients.Estimate,N_al_fit.Coefficients.SE];
+Npal_fit.x=[1:pal_nseq]';
+Npal_fit.y=feval(N_al_fit,Npal_fit.x);
 Nal=Npal_fit.y;
 
-%%% atoms numbers
+N0_0=al_paramfit(1,1);      % original number in BEC
+eff_al=al_paramfit(2,1);    % AL outcoupling ratio
+
+%%% atoms numbers error analysis
 % BEC
-N0=(paramfit(1,1)*(1-paramfit(2,1)).^(1:pal_nseq))';
-% estimate error
-Nfitrelerr=Nfit.Coefficients.SE./Nfit.Coefficients.Estimate;        % N0, r fit err (rel)
-N0_SE_rel=Nfitrelerr(2)*(sqrt(1:length(N0))');    % rel error for N0
-N0_SE_rel=sqrt(N0_SE_rel.^2+Nfitrelerr(1)^2);
-N0_SE=N0.*N0_SE_rel;        % evaluate fit SE
+N0=(N0_0*(1-eff_al).^(1:pal_nseq))';
+fit_err_rel=N_al_fit.Coefficients.SE./N_al_fit.Coefficients.Estimate;        % N0, r fit err (rel)
+N0_err_fit_rel=fit_err_rel(2)*(sqrt(1:length(N0))');    % rel error for N0 - contribution from outcoupling eff
+N0_err_fit_rel=sqrt(N0_err_fit_rel.^2+fit_err_rel(1)^2);    % add contribution from unc in init N0
+N0_err_fit=N0.*N0_err_fit_rel;        % evaluate fit SE error (abs)
 
 % AL
-Nal_SE_rel=N0_SE_rel';          % formula for Nal scales identically with N0
-Nal_SE_fit=Nal.*Nal_SE_rel;	% evaluate SE from fit uncertainties
-% will be summed with quadrature with detected number fluctuation SE for
-% total uncertainty
+Nal_err_fit_rel=N0_err_fit_rel';  	% formula for Nal scales identically with N0
+Nal_err_fit=Nal.*Nal_err_fit_rel;	% evaluate SE from fit uncertainties
+% later summed in quad with detected num SE for total err
 
-clearvars Nfitrelerr N0_SE_rel Nal_SE_rel;
+clearvars Nfitrelerr N0_err_fit_rel Nal_err_fit_rel;
 
-% summarise
 if vgraph>0
+    % plot AL model fit
     linewidth=1.5;
     namearray={'LineWidth','MarkerFaceColor','Color'};      % error bar graphics properties
     valarray={linewidth,'w','k'};                 % 90 deg (normal) data
     if verbose>1
         hfig_atom_number=figure();
         % plot data
-        hdata_pal_n=ploterr(1:pal_nseq,pal_n(:,1),[],pal_n(:,2),'o','hhxy',0);
+        hdata_pal_n=ploterr(1:pal_nseq,num_in_pal(:,1),[],num_in_pal(:,2),'o','hhxy',0);
         set(hdata_pal_n(1),namearray,valarray,'DisplayName','Data');
         set(hdata_pal_n(2),namearray,valarray,'DisplayName','');
         
@@ -277,51 +290,51 @@ if vgraph>0
     end
 end
 
-
-
 %% PAL density image
-%%% 3D density profile (full)
-nden3=cellfun(@(x) density3d(x,edges),pal_zxy0,'UniformOutput',false);
-
-%%% 2D projection - integrated
-% nden2: 2D projected density (unit like m^-2), Npulse X 3(dims Z,X,Y
-% int'd) cell-array
-nden2=cell(pal_nseq,3);
-for ii=1:pal_nseq
-    for jj=1:3
-        nden2{ii,jj}=squeeze(mean(nden3{ii},jj))*(edges{jj}(end)-edges{jj}(1));    % 2D density
+if verbose>0
+    %%% 3D density profile (full)
+    nden3=cellfun(@(x) density3d(x,edges),pal_zxy0,'UniformOutput',false);
+    
+    %%% 2D projection - projected
+    % nden2: 2D projected density (unit like m^-2), Npulse X 3(dims Z,X,Y
+    % int'd) cell-array
+    nden2=cell(pal_nseq,3);
+    for ii=1:pal_nseq
+        for jj=1:3
+            nden2{ii,jj}=squeeze(mean(nden3{ii},jj))*(edges{jj}(end)-edges{jj}(1));    % 2D density
+        end
     end
-end
-
-% summarise
-if vgraph>0
-    if verbose>1
-        for ii=1:3
-            hfig_pal_nden2(ii)=figure();
-            
-            % get image X,Y axis - NOT CYCLIC
-            ord=[1,2,3];
-            ord_xy=ord([1:ii-1,ii+1:3]);    % pop the integrated dim out
-            
-            % plot each PAL as subfigure
-            for jj=1:pal_nseq
-                subplot(plot_nrow,plot_ncol,jj);
+    
+    % summarise
+    if vgraph>0
+        if verbose>1
+            for ii=1:3
+                hfig_pal_nden2(ii)=figure();
                 
-                % quick and dirty way to do density plot - imagesc
-                imagesc(cents{ord_xy(2)},cents{ord_xy(1)},nden2{jj,ii});
-                set(gca,'YDir','normal');   % orient it the correct way
+                % get image X,Y axis - NOT CYCLIC
+                ord=[1,2,3];
+                ord_xy=ord([1:ii-1,ii+1:3]);    % pop the integrated dim out
                 
-                % annotate
-                axis equal;
-                box on;
-                ht=sprintf('(%d) %0.2g / %0.2g',jj,Nal(jj),N0(jj));
-                title(ht);
-            end
-            
-            if configs.flags.savedata
-                figname=sprintf('al_2D_%d',ii);
-                saveas(hfig_pal_nden2(ii),[configs.files.dirout,'/',figname,'.png']);
-                saveas(hfig_pal_nden2(ii),[configs.files.dirout,'/',figname,'.fig']);
+                % plot each PAL as subfigure
+                for jj=1:pal_nseq
+                    subplot(plot_nrow,plot_ncol,jj);
+                    
+                    % quick and dirty way to do density plot - imagesc
+                    imagesc(cents{ord_xy(2)},cents{ord_xy(1)},nden2{jj,ii});
+                    set(gca,'YDir','normal');   % orient it the correct way
+                    
+                    % annotate
+                    axis equal;
+                    box on;
+                    ht=sprintf('(%d) %0.2g / %0.2g',jj,Nal(jj),N0(jj));
+                    title(ht);
+                end
+                
+                if configs.flags.savedata
+                    figname=sprintf('al_2D_%d',ii);
+                    saveas(hfig_pal_nden2(ii),[configs.files.dirout,'/',figname,'.png']);
+                    saveas(hfig_pal_nden2(ii),[configs.files.dirout,'/',figname,'.fig']);
+                end
             end
         end
     end
@@ -397,134 +410,131 @@ clearvars nden3;
 
 
 %% Characterise AL
-cc=distinguishable_colors(pal_nseq);
+% characterise AL by a circular disc assumption: radius, width
+cc=distinguishable_colors(pal_nseq);	% color set for plotting each AL
 
-%%% YZ plane - radial density distribution
-r_edge=linspace(0,20e-3,100);   % radial edge for histogramming
+% R density distribution (YZ plane)
+r_edge=linspace(0,20e-3,100);
 r_cent=r_edge(1:end-1)+0.5*diff(r_edge);
 
+% transverse dist (X-axis projection)
+x_edge=linspace(0,5e-3,100);   % single sided
+x_cent=x_edge(1:end-1)+0.5*diff(x_edge);
+
 % preallocate
-% average
-n_r=zeros(pal_nseq,length(r_cent));     % radial density
-pal_R=zeros(1,pal_nseq);
+nden_r=zeros(pal_nseq,length(r_cent));     % radial density [dimension TODO]
+pal_R=zeros(pal_nseq,1);        % charactersitic radius of AL [m]
+nden_x=zeros(pal_nseq,length(x_cent));	% atom laser density along thickness [dimension TODO]
+pal_Rx=zeros(pal_nseq,1);	% atom laser thickness (half-width) [m]
 
-hfig_rad_density=figure();
-hold on;
-
+if vgraph>0
+    hfig_al_rden=figure();
+    hold on;
+    hfig_al_xden=figure();
+    hold on;
+end
 for ii=1:pal_nseq
-    % get radial density profile
-    this_n_r=al_rad_density(vertcat(pal_zxy0{ii}{:}),r_edge);
-    this_n_r=this_n_r/nshot;    % normalise by number of shots
+    %%% get radial density profile
+    this_nden_r=al_rad_density(vertcat(pal_zxy0{ii}{:}),r_edge);
+    this_nden_r=this_nden_r/nshot;    % normalise by number of shots collated
+
+    %%% get perp density profile
+    x=vertcat(pal_zxy0{ii}{:});    % collate all shots in this PAL
+    x=abs(x(:,2));     % cull Y,Z, sign on X (X-symm)
     
-    n_r(ii,:)=this_n_r;
+    this_nden_x=histcounts(x,x_edge);     % get histogram counts
+    this_nden_x=this_nden_x/(nshot*2);    % norm - shots + X symmetry
+    this_nden_x=this_nden_x./diff(x_edge);  % hist-->density
     
-    % get AL radius - HWHM
-    % get peak density and location
-    [nr_max,i_max]=max(this_n_r);
-    % get half-maximum point
-    [~,i_halfmax]=min(abs(this_n_r(i_max:end)-nr_max/2));
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % get characteristic size (half maximum)
+    %%% R
+    [nr_max,i_max]=max(this_nden_r);
+    [~,i_halfmax]=min(abs(this_nden_r(i_max:end)-nr_max/2));
     pal_R(ii)=r_cent(i_max+i_halfmax-1);      % get half maximum radius and store
     
-    % plot
-    plot(r_cent,n_r(ii,:),'Color',cc(ii,:));     % profile 
-    scatter(pal_R(ii),n_r(ii,i_max+i_halfmax-1),'MarkerEdgeColor',cc(ii,:));   % half maximum point 
-end
-% annotate
-title('AL radial density profile');
-box on;
-xlabel('Radius [m]');
-ylabel('density [m$^{-2}$]');
-if configs.flags.savedata
-    figname=sprintf('al_R_size');
-    saveas(hfig_rad_density,[configs.files.dirout,'/',figname,'.png']);
-    saveas(hfig_rad_density,[configs.files.dirout,'/',figname,'.fig']);
-end
-
-% evaluate shot-to-shot variability
-% coarse edges for single shot
-r_edge_shot=linspace(0,20e-3,20);
-r_cent_shot=r_edge_shot(1:end-1)+0.5*diff(r_edge_shot);
-
-% figure(); hold on;
-shot_pal_R=cell(pal_nseq,1);
-for ii=1:pal_nseq
-    shot_pal_R{ii}=zeros(nshot,1);
-    for jj=1:nshot
-        this_n_r=al_rad_density(pal_zxy0{ii}{jj},r_edge_shot);
-        this_n_r=smooth(this_n_r,5);    % smooth out noise
+    %%% Perp
+    [nx_max,i_max]=max(this_nden_x);
+    [~,i_halfmax]=min(abs(this_nden_x(i_max:end)-nx_max/2));
+    pal_Rx(ii)=x_cent(i_max+i_halfmax-1);  % half maximum width
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    
+    % normalise density by the integration volume (other dims)
+    this_nden_r=this_nden_r/(2*pal_Rx(ii));
+    this_nden_x=this_nden_x/(pi*pal_R(ii)^2);
+    
+    nden_r(ii,:)=this_nden_r;
+    nden_x(ii,:)=this_nden_x;
+    
+    if vgraph>0
+        % plot
+        figure(hfig_al_rden);
+        plot(r_cent,nden_r(ii,:),'Color',cc(ii,:));     % profile
+        scatter(pal_R(ii),max(this_nden_r)/2,'MarkerEdgeColor',cc(ii,:));   % half maximum point
         
-        % get AL radius - HWHM
-        % get peak density and location
-        [nr_max,i_max]=max(this_n_r);
-        % get half-maximum point
-        [~,i_halfmax]=min(abs(this_n_r(i_max:end)-nr_max/2));
-        shot_pal_R{ii}(jj)=r_cent_shot(i_max+i_halfmax-1);      % get half maximum radius and store
-        
-%         if rand()>0.999
-%             plot(r_cent_shot,this_n_r);     % profile
-%             scatter(r_cent_shot(i_max+i_halfmax-1),this_n_r(i_max+i_halfmax-1));   % half maximum point
-%         end
+        figure(hfig_al_xden);
+        plot(x_cent,nden_x(ii,:),'Color',cc(ii,:));     % profile
+        scatter(pal_Rx(ii),max(this_nden_x)/2,'MarkerEdgeColor',cc(ii,:));   % half maximum point
+    end
+end
+if vgraph>0
+    % annotate plot
+    figure(hfig_al_rden);
+    title('AL radial density profile');
+    box on;
+    xlabel('Radius [m]');
+    ylabel('density [m$^{-3}$]');
+    if configs.flags.savedata
+        figname=sprintf('al_R_size');
+        saveas(hfig_al_rden,[configs.files.dirout,'/',figname,'.png']);
+        saveas(hfig_al_rden,[configs.files.dirout,'/',figname,'.fig']);
+    end
+    
+    figure(hfig_al_xden);
+    title('AL X density profile');
+    box on;
+    xlabel('X [m]');
+    ylabel('density [m$^{-3}$]');
+    if configs.flags.savedata
+        figname=sprintf('al_Rx_size');
+        saveas(hfig_al_xden,[configs.files.dirout,'/',figname,'.png']);
+        saveas(hfig_al_xden,[configs.files.dirout,'/',figname,'.fig']);
     end
 end
 
-%%% X plane - transverse thickness
-x_edge=linspace(0,5e-3,100);   % radial edge for histogramming
-x_cent=x_edge(1:end-1)+0.5*diff(x_edge);
-x_diff=diff(x_edge);
-
-x_norm=x_diff;
-
-% preallocate
-n_x=zeros(pal_nseq,length(x_cent));     % radial density
-pal_Rx=zeros(1,pal_nseq);
-
-hfig_x_density=figure();
-hold on;
-for ii=1:pal_nseq
-    % get 1D projected X-density profile
-    x=vertcat(pal_zxy0{ii}{:});    % collate all shots in this PAL
-    
-    % cull about Z=0
-    %     x=x(:,[1,2]);       % cull Y
-%     x=abs(x(abs(x(:,1))<2e-3,2));
-
-    % 1D projection on X - gets smoother answer
-    x=abs(x(:,2));     % cull YZ --> X + use symmetry
-    
-    this_n_x=histcounts(x,x_edge);     % get histogram counts
-    this_n_x=this_n_x/nshot;    % normalise by number of shots
-    this_n_x=this_n_x./x_norm;
-    
-    n_x(ii,:)=this_n_x;
-    
-    % get HWHM in X
-    % get peak density and location
-    [nx_max,i_max]=max(this_n_x);
-    % get half-maximum point
-    [~,i_halfmax]=min(abs(this_n_x(i_max:end)-nx_max/2));
-    pal_Rx(ii)=x_cent(i_max+i_halfmax-1);      % get half maximum radius and store
-    
-    % plot
-    plot(x_cent,n_x(ii,:),'Color',cc(ii,:));     % profile 
-    scatter(pal_Rx(ii),n_x(ii,i_max+i_halfmax-1),'MarkerEdgeColor',cc(ii,:));   % half maximum point 
-end
-% annotate
-title('AL X density profile');
-box on;
-xlabel('X [m]');
-ylabel('density [m$^{-1}$]');
-if configs.flags.savedata
-    figname=sprintf('al_Rx_size');
-    saveas(hfig_x_density,[configs.files.dirout,'/',figname,'.png']);
-    saveas(hfig_x_density,[configs.files.dirout,'/',figname,'.fig']);
-end
+% % evaluate shot-to-shot variability
+% % coarse edges for single shot
+% r_edge_shot=linspace(0,20e-3,20);
+% r_cent_shot=r_edge_shot(1:end-1)+0.5*diff(r_edge_shot);
+% 
+% % figure(); hold on;
+% shot_pal_R=cell(pal_nseq,1);
+% for ii=1:pal_nseq
+%     shot_pal_R{ii}=zeros(nshot,1);
+%     for jj=1:nshot
+%         this_nden_r=al_rad_density(pal_zxy0{ii}{jj},r_edge_shot);
+%         this_nden_r=smooth(this_nden_r,5);    % smooth out noise
+%         
+%         % get AL radius - HWHM
+%         % get peak density and location
+%         [nr_max,i_max]=max(this_nden_r);
+%         % get half-maximum point
+%         [~,i_halfmax]=min(abs(this_nden_r(i_max:end)-nr_max/2));
+%         shot_pal_R{ii}(jj)=r_cent_shot(i_max+i_halfmax-1);      % get half maximum radius and store
+%         
+% %         if rand()>0.999
+% %             plot(r_cent_shot,this_n_r);     % profile
+% %             scatter(r_cent_shot(i_max+i_halfmax-1),this_n_r(i_max+i_halfmax-1));   % half maximum point
+% %         end
+%     end
+% end
 
 %%% evaluate AL volume
 pal_vol=pi*pal_R.^2*2.*pal_Rx;
-pal_n_exp=Nal./pal_vol;
+pal_nden_exp=Nal./pal_vol;
 
 % figure();
-% plot(1:pal_nseq,pal_n_exp,'o');
+% plot(1:pal_nseq,pal_nden_exp,'o');
 % xlabel('AL number');
 % ylabel('AL density from experiment (arb. unit)');
 
@@ -532,7 +542,7 @@ pal_n_exp=Nal./pal_vol;
 % R: very good!
 hfig_Ral_N=figure();
 
-rerr=(N0_SE./N0);
+rerr=(N0_err_fit./N0);
 scaleexp=1/5;
 ploterr(N0.^(scaleexp),pal_R,rerr*(scaleexp),[],'hhxy',0);
 
@@ -558,10 +568,10 @@ main_process_pal;
 DemoFringePeak;
 
 % store results - overwritten in current implementation of bootstrap
-PEAK_POS_ALL=peak_pos;
-PEAK_DIFF_ALL=peak_diff;
-MAX_PEAK_N=max_peak_n;
-CC2=distinguishable_colors(MAX_PEAK_N-1);
+Rff_peak=peak_pos;
+lambda_ff=peak_diff;
+N_peak_max=max_peak_n;
+cc_all=distinguishable_colors(N_peak_max-1);
 
 %% evaluate uncertainty by bootstrapping
 % configure for bootstrapping
@@ -572,8 +582,8 @@ bootstrap_Nsubset=ceil(nshot*bootstrap_ndata);      % number of shots in a subse
 I_subset=cell(bootstrap_Nsamp,1);
 
 % analysis on subsets
-PEAK_DIFF_SUB_CELL=cell(bootstrap_Nsamp,1);
-AL_N_SUB=zeros(pal_nseq,bootstrap_Nsamp);
+lambda_ff_subset_cell=cell(bootstrap_Nsamp,1);
+Nal_subset=zeros(pal_nseq,bootstrap_Nsamp);
 for ii_bootstrap=1:bootstrap_Nsamp
     % random selection of subset
     I_subset{ii_bootstrap}=randperm(nshot,bootstrap_Nsubset);
@@ -584,27 +594,26 @@ for ii_bootstrap=1:bootstrap_Nsamp
     DemoFringePeak;
     
     % get avg number in PAL from this subset
-    AL_N_SUB(:,ii_bootstrap)=cellfun(@(x) mean(cellfun(@(y) size(y,1),x)),pal_data);
+    Nal_subset(:,ii_bootstrap)=cellfun(@(x) mean(cellfun(@(y) size(y,1),x)),pal_data);
     
     % save result separately
-    PEAK_DIFF_SUB_CELL{ii_bootstrap}=peak_diff;
+    lambda_ff_subset_cell{ii_bootstrap}=peak_diff;
 end
 % evaluate SD of analysis outupt
 % restructure subset outputs into array
-PEAK_DIFF_SUB=NaN([size(PEAK_DIFF_ALL),bootstrap_Nsamp]);   % preallocate NaN array
+lambda_ff_sub=NaN([size(lambda_ff),bootstrap_Nsamp]);   % preallocate NaN array
 for ii_bootstrap=1:bootstrap_Nsamp
-    this_peak_diff=PEAK_DIFF_SUB_CELL{ii_bootstrap};
-    PEAK_DIFF_SUB(:,1:size(this_peak_diff,2),ii_bootstrap)=this_peak_diff;
+    this_peak_diff=lambda_ff_subset_cell{ii_bootstrap};
+    lambda_ff_sub(:,1:size(this_peak_diff,2),ii_bootstrap)=this_peak_diff;
 end
 
-PEAK_DIFF_SD=std(PEAK_DIFF_SUB,0,3,'omitnan');    % std from bootstrapping
-PEAK_DIFF_SD=PEAK_DIFF_SD(:,1:(MAX_PEAK_N-1));      % resize to all data
+lambda_ff_err=std(lambda_ff_sub,0,3,'omitnan');    % std from bootstrapping
+lambda_ff_err=lambda_ff_err(:,1:(N_peak_max-1));   % resize to main result
 
 % PAL number uncertainty from bootstrapping data subsets
-AL_N_AVG=mean(AL_N_SUB,2);      % avg PAL number
-AL_N_SD=std(AL_N_SUB,0,2);      % SD PAL number
-% need to add in quadrature with fit uncertainty
-Nal_SE=sqrt(AL_N_SD'.^2+Nal_SE_fit.^2);
+Nal_avg_sub=mean(Nal_subset,2);         % avg PAL number
+Nal_err_sub=std(Nal_subset,0,2);        % stdev PAL number from bootstrap
+Nal_err_tot=sqrt(Nal_err_sub'.^2+Nal_err_fit.^2);    % add in quadrature with fit uncertainty
 
 clearvars pal_zxy0;     % clean workspace
 
@@ -617,13 +626,13 @@ if vgraph>0
     valarray={linewidth,'w'};                 % 90 deg (normal) data
     
     hfig_dpeak_vs_Npal=figure();
-    p=zeros(1,(MAX_PEAK_N-1));      % array to store figure objects for selective legend
-    for ii=1:(MAX_PEAK_N-1)
+    p=zeros(1,(N_peak_max-1));      % array to store figure objects for selective legend
+    for ii=1:(N_peak_max-1)
         hold on;
-        hdata_pal_n=ploterr(Nal,PEAK_DIFF_ALL(:,ii),Nal_SE,PEAK_DIFF_SD(:,ii),'o','hhxy',0);
-        set(hdata_pal_n(1),namearray,valarray,'Color',CC2(ii,:),'DisplayName',sprintf('%d',ii));
-        set(hdata_pal_n(2),namearray,valarray,'Color',CC2(ii,:),'DisplayName','');
-        set(hdata_pal_n(3),namearray,valarray,'Color',CC2(ii,:),'DisplayName','');
+        hdata_pal_n=ploterr(Nal,lambda_ff(:,ii),Nal_err_tot,lambda_ff_err(:,ii),'o','hhxy',0);
+        set(hdata_pal_n(1),namearray,valarray,'Color',cc_all(ii,:),'DisplayName',sprintf('%d',ii));
+        set(hdata_pal_n(2),namearray,valarray,'Color',cc_all(ii,:),'DisplayName','');
+        set(hdata_pal_n(3),namearray,valarray,'Color',cc_all(ii,:),'DisplayName','');
         p(ii)=hdata_pal_n(1);
     end
     box on;
@@ -645,13 +654,13 @@ if vgraph>0
     valarray={linewidth,'w'};                 % 90 deg (normal) data
     
     hfig_dpeak_vs_N0=figure();
-    p=zeros(1,(MAX_PEAK_N-1));      % array to store figure objects for selective legend
-    for ii=1:(MAX_PEAK_N-1)
+    p=zeros(1,(N_peak_max-1));      % array to store figure objects for selective legend
+    for ii=1:(N_peak_max-1)
         hold on;
-        hdata_pal_n=ploterr(N0,PEAK_DIFF_ALL(:,ii),N0_SE,PEAK_DIFF_SD(:,ii),'o','hhxy',0);
-        set(hdata_pal_n(1),namearray,valarray,'Color',CC2(ii,:),'DisplayName',sprintf('%d',ii));
-        set(hdata_pal_n(2),namearray,valarray,'Color',CC2(ii,:),'DisplayName','');
-        set(hdata_pal_n(3),namearray,valarray,'Color',CC2(ii,:),'DisplayName','');
+        hdata_pal_n=ploterr(N0,lambda_ff(:,ii),N0_err_fit,lambda_ff_err(:,ii),'o','hhxy',0);
+        set(hdata_pal_n(1),namearray,valarray,'Color',cc_all(ii,:),'DisplayName',sprintf('%d',ii));
+        set(hdata_pal_n(2),namearray,valarray,'Color',cc_all(ii,:),'DisplayName','');
+        set(hdata_pal_n(3),namearray,valarray,'Color',cc_all(ii,:),'DisplayName','');
         p(ii)=hdata_pal_n(1);
     end
     box on;
@@ -666,35 +675,43 @@ if vgraph>0
     end
 end
 
-%% theory
-m=6.647e-27;
-hbar=1.055e-34;
-tof=0.416;
-g=9.81;
-lambda=PEAK_DIFF_ALL;       % fringe spacing in m
-R_fringe=PEAK_POS_ALL;      % location of fringe
+%% plot theory
+t0=mean(pal_R/(tof*g));       % AL expansion time [s] TODO - explain avg
+% t0=pal_R/(tof*g);
 
-% approximate velocity
-v=pal_R/tof;    % velocity at AL radius
-r_fringe=mean((1e-3*R_fringe)./pal_R',1,'omitnan');   % ratio of distance from ith fringe to 
-v=v'*r_fringe;   % approx velocity at shock wave (row - AL; col - fringe)
-% rv_firstfringe=(1e-3*peak_pos(:,1)./pal_R');
-% v=v*rv_firstfringe;          % scale v to ~first fringe location
-% v=v/4;          % approximation
+lambda_nf=lambda_ff.*t0/tof;	% near-field density modulation wavelength [m]
+npeak=size(lambda_nf,2);
 
-% approximate speed of sound
-c=4.2e-12*sqrt(g*tof^6*Nal./(pi*pal_R.^5.*pal_Rx));
-c=c';
+%%% approximate velocity
+v_al_max=pal_R/tof;    % velocity at AL radius
+% r_fringe=mean((1e-3*Rff_peak)./pal_R,1,'omitnan');   % ratio of distance from ith fringe to 
+r_fringe=(1e-3*Rff_peak)./pal_R;   % ratio of distance from ith fringe to 
+v=v_al_max.*r_fringe;   % approx velocity at shock wave (row - AL; col - fringe)
 
-% plot
+%%% approximate speed of sound
+% c=4.2e-12*sqrt(g*tof^6*Nal./(pi*pal_R.^5.*pal_Rx));     % approx speed of sound - uniform density approx
+
+% approximate from radial density profile
+% get nden_Rff from nden_r
+nden_Rff=NaN(pal_nseq,npeak);     % AL far-field density at peak
+for ii=1:pal_nseq
+    for jj=1:npeak
+        [dRff_min,iRff]=min(abs(1e-3*Rff_peak(ii,jj)-r_cent));
+        nden_Rff(ii,jj)=nden_r(ii,iRff);    % get density
+    end
+end
+nden_Rnf=nden_Rff.*(tof./t0).^3;    % simple extrapolation to approx NF density
+c=4.2e-12*sqrt(nden_Rnf);           % evaluate speed of sound
+
+%%% plot
 hfig_theory=figure();
-npeak=size(lambda,2);
 for ii=1:npeak
-    plot((2*m/hbar*sqrt(v(:,ii).^2-c.^2)),(2*pi)./lambda(:,ii),'o');
+%     plot((2*m/hbar*sqrt(v(:,ii).^2-c.^2)),1e3*(2*pi)./lambda_nf(:,ii),'o');
+    plot((2*m/hbar*sqrt(v(:,ii).^2-c(:,ii).^2)),1e3*(2*pi)./lambda_nf(:,ii),'o');
     hold on;
 end
 xlabel('$2 m / hbar \cdot (v^2 - c^2)^{1/2}$');
-ylabel('$2 \pi / \lambda $ [mm$^{-1}$]');
+ylabel('$2 \pi / \lambda $ [m$^{-1}$]');
 
 if configs.flags.savedata
     figname=sprintf('theory_curve');
@@ -715,23 +732,11 @@ if configs.flags.savedata
     if verbose>0
         fprintf('Saving data. This may take a minute.\n');
     end
-%     %%% fig
-%     % TODO - need to be able to save all graphics from each subroutine
-%     for ii=1:length(HFIG)
-%         for jj=1:length(HFIG{ii})
-%             saveas(HFIG{ii}{jj},[configs.files.dirout,'/',sprintf('fig_%d_%d',ii,jj),'.png']);
-%             saveas(HFIG{ii}{jj},[configs.files.dirout,'/',sprintf('fig_%d_%d',ii,jj),'.fig']);
-%         end
-%     end
-%     clear HFIG;     % clear HFIG graphics handle cell array from workspace
     
     %%% data
     % get all vars in workspace except graphics handles
     allvars=whos;
     tosave=cellfun(@isempty,regexp({allvars.class},'^matlab\.(ui|graphics)\.'));
 
-    % doesn't save the whole workspace this way
-    save([configs.files.dirout,'/',mfilename,'_data','.mat'],allvars(tosave).name);
-%     varstosave={};
-%     save([configs.files.dirout,'/',mfilename,'_data','.mat'],varstosave{:});
+    save([configs.files.dirout,'/',mfilename,'_data','.mat'],allvars(tosave).name,'-v7.3','-nocompression');
 end

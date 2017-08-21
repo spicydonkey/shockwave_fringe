@@ -115,7 +115,7 @@ if vgraph>0
     p=zeros(1,(max_peak_n-1));      % array to store figure objects for selective legend
     for ii=1:(max_peak_n-1)
         hold on;
-        hdata_pal_n=ploterr(Nal,peak_diff(:,ii),pal_n(:,2),[],'o','hhxy',0);
+        hdata_pal_n=ploterr(Nal,peak_diff(:,ii),num_in_pal(:,2),[],'o','hhxy',0);
         set(hdata_pal_n(1),namearray,valarray,'Color',cc2(ii,:),'DisplayName',sprintf('%d',ii));
         set(hdata_pal_n(2),namearray,valarray,'Color',cc2(ii,:),'DisplayName','');
         p(ii)=hdata_pal_n(1);
