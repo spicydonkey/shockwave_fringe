@@ -8,7 +8,7 @@ Ndpeakplot=5;    % number of fringe spacings to plot
 savefigs=0;
 path_save='C:\Users\HE BEC\Desktop\shock_summary';
 
-path_data='C:\Users\HE BEC\Documents\lab\shockwave\summary\data\ver5';
+path_data='C:\Users\HE BEC\Documents\lab\shockwave\summary\data\ver7';
 data_regexp='run_*.mat';
 
 datetimestr=datestr(datetime,'yyyymmdd_HHMMSS');    % timestamp when function called
@@ -228,12 +228,15 @@ for ii=1:Nexp
     thisS.Yerr=(thisS.lambda_ff_err(:,1:ndpeak)./thisS.lambda_ff(:,1:ndpeak)).*thisS.Y;
     
     % update collate errors
-    % error as max from stdev and sample unc
-    thisS.X_collate_err_tot=max([thisS.X_collate_err;mean(thisS.Xerr,1,'omitnan')],[],1);
-    thisS.Y_collate_err_tot=max([thisS.Y_collate_err;mean(thisS.Yerr,1,'omitnan')],[],1);
-%     % error as mean from stdev and sample unc
-%     thisS.X_collate_err_tot=mean([thisS.X_collate_err;mean(thisS.Xerr,1,'omitnan')],1,'omitnan');
-%     thisS.Y_collate_err_tot=mean([thisS.Y_collate_err;mean(thisS.Yerr,1,'omitnan')],1,'omitnan');
+%     % error as max from stdev and sample unc
+%     thisS.X_collate_err_tot=max([thisS.X_collate_err;mean(thisS.Xerr,1,'omitnan')],[],1);
+%     thisS.Y_collate_err_tot=max([thisS.Y_collate_err;mean(thisS.Yerr,1,'omitnan')],[],1);
+    % error as mean from stdev and sample unc
+    thisS.X_collate_err_tot=mean([thisS.X_collate_err;mean(thisS.Xerr,1,'omitnan')],1,'omitnan');
+    thisS.Y_collate_err_tot=mean([thisS.Y_collate_err;mean(thisS.Yerr,1,'omitnan')],1,'omitnan');
+%     % error as from spread in samples
+%     thisS.X_collate_err_tot=thisS.X_collate_err;
+%     thisS.Y_collate_err_tot=thisS.Y_collate_err;
     
     S_new(ii)=thisS;
 end
@@ -263,31 +266,82 @@ xlabel('$2 m / \hbar \cdot (v^2 - c^2)^{1/2}$ [m$^{-1}$]');
 ylabel('$2 \pi / \lambda_{NF} $ [m$^{-1}$]');
 
 
-%% collate spread from each run
-% spread from each "fringe"
-hfig_dpeak_theory_summ=figure();
+%% BCR theory - collate AL from each run
+% figure params
+mrk_size=7;
+fontsize=11;
+linewidth=1.8;
+
+papersize=[10,10];
+paperposition=[0,0,papersize];
+
+
+%%% Data
+hfig_dpeak_theory_summ=figure('Units','centimeters',...
+    'PaperUnits','centimeters',...
+    'PaperPositionMode','manual',...
+    'PaperSize',papersize,...
+    'PaperPosition',paperposition);
 hold on;
 
 namearray={'LineWidth','MarkerFaceColor'};      % error bar graphics properties
 valarray={linewidth,'w'};                 % 90 deg (normal) data
 
 cc=distinguishable_colors(Nexp);
-p=[];
+% p=[];
 for ii=1:Nexp
-    thisS=S(ii);
-    hdata_theory_summ=ploterr(S_new(ii).X_collate,S_new(ii).Y_collate,...
-        S_new(ii).X_collate_err_tot,S_new(ii).Y_collate_err_tot,...
+    thisS=S_new(ii);
+    hdata_theory_summ=ploterr(thisS.X_collate,thisS.Y_collate,...
+        thisS.X_collate_err_tot,thisS.Y_collate_err_tot,...
         mm{ii},'hhxy',0);
-    %     set(hdata_theory_summ(1),namearray,valarray,'Color',cc(ii,:),'MarkerSize',6,'DisplayName',mlist{ii});
-    set(hdata_theory_summ(1),namearray,valarray,'Color',cc(ii,:),'MarkerSize',6,'DisplayName',sprintf('%d',ii));
+    set(hdata_theory_summ(1),namearray,valarray,'Color',cc(ii,:),'MarkerSize',mrk_size,'DisplayName',sprintf('%d',ii));
     set(hdata_theory_summ(2),namearray,valarray,'Color',cc(ii,:),'DisplayName','');
     set(hdata_theory_summ(3),namearray,valarray,'Color',cc(ii,:),'DisplayName','');
-    p(ii)=hdata_theory_summ(1);
+%     p(ii)=hdata_theory_summ(1);
 end
+set(gca,'Units','normalized',...
+    'YTick',1e6*[0:0.5:3],...
+    'XTick',1e6*[0:0.5:3],...
+    'FontUnits','points',...
+    'FontWeight','normal',...
+    'FontSize',fontsize);
 box on;
-axis equal;
 axis square;
-lgd=legend(p,'Location','northwest');
-title(lgd,'Exp');
+xlim(1e6*[0.75,2.75]);
+ylim(1e6*[0.3,1.5]);
+% lgd=legend(p,'Location','northwest');
+% title(lgd,'Exp');
 xlabel('$2 m / \hbar \cdot (v^2 - c^2)^{1/2}$ [m$^{-1}$]');
 ylabel('$2 \pi / \lambda_{NF} $ [m$^{-1}$]');
+
+%%% linear fit
+% get all data for fit
+X=[];
+Y=[];
+for ii=1:Nexp
+    X=[X,S_new(ii).X_collate];
+    Y=[Y,S_new(ii).Y_collate];
+end
+pfit=polyfit(X,Y,1);
+xfit=1e6*linspace(0.5,3);
+yfit=polyval(pfit,xfit);
+
+% plot
+figure(hfig_dpeak_theory_summ);
+hold on;
+plot(xfit,yfit,'k--','LineWidth',2);
+
+%%% theory
+xth=xfit;
+yth=polyval([1,0],xth);
+
+% plot
+figure(hfig_dpeak_theory_summ);
+hold on;
+plot(xth,yth,'k-','LineWidth',2);
+
+% save
+if savefigs
+    figname=sprintf('data_BCR_%s',datetimestr);
+    print(hfig_dpeak_theory_summ,fullfile(path_save,figname),'-dpdf');
+end
