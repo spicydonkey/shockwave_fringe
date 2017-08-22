@@ -3,7 +3,7 @@ clear all; close all; clc;
 
 %% configs
 % User path to config
-% path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_20170716_atomlaser.m';
+path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_20170716_atomlaser.m';
 % path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_20170717_atomlaser.m';
 % path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_run1.m';
 % path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_run2.m';
@@ -607,12 +607,12 @@ for ii_bootstrap=1:bootstrap_Nsamp
     lambda_ff_sub(:,1:size(this_peak_diff,2),ii_bootstrap)=this_peak_diff;
 end
 
-lambda_ff_err=std(lambda_ff_sub,0,3,'omitnan');    % std from bootstrapping
+lambda_ff_err=std(lambda_ff_sub,0,3,'omitnan')*sqrt(bootstrap_ndata);    % SE from bootstrapping
 lambda_ff_err=lambda_ff_err(:,1:(N_peak_max-1));   % resize to main result
 
 % PAL number uncertainty from bootstrapping data subsets
 Nal_avg_sub=mean(Nal_subset,2);         % avg PAL number
-Nal_err_sub=std(Nal_subset,0,2);        % stdev PAL number from bootstrap
+Nal_err_sub=std(Nal_subset,0,2)*sqrt(bootstrap_ndata);	% SE PAL number from bootstrap
 Nal_err_tot=sqrt(Nal_err_sub.^2+Nal_err_fit.^2);    % add in quadrature with fit uncertainty
 
 clearvars pal_zxy0;     % clean workspace
@@ -701,7 +701,8 @@ for ii=1:pal_nseq
     end
 end
 nden_Rnf=nden_Rff.*(tof./t0).^3;    % simple extrapolation to approx NF density
-c=4.2e-12*sqrt(nden_Rnf);           % evaluate speed of sound
+c_const=sqrt((4*pi*hbar^2*5.56e-9/m)/m);
+c=c_const*sqrt(nden_Rnf);           % evaluate speed of sound
 
 %%% plot
 hfig_theory=figure();
