@@ -185,7 +185,10 @@ end
 % %     saveas(hfig_dpeak_vs_N0,fullfile(path_save,[figname,'.fig']));
 % % end
 
-%% theory
+
+%% theory - Bogoliubov-Cherenkov condition
+cc=distinguishable_colors(Npeakmax);
+
 % define constants
 m=6.647e-27;
 hbar=1.055e-34;
@@ -195,36 +198,65 @@ hfig_dpeak_theory=figure();
 namearray={'LineWidth','MarkerFaceColor'};      % error bar graphics properties
 valarray={linewidth,'w'};                 % 90 deg (normal) data
 
+% BUILD DATA
+clearvars S_new;
 for ii=1:Nexp
     thisS=S(ii);
     ndpeak=(thisS.N_peak_max-1);
     if Ndpeakplot<ndpeak
         ndpeak=Ndpeakplot;
     end
-    %     p=zeros(1,ndpeak);
+%         p=zeros(1,ndpeak);
     for jj=1:ndpeak
         hold on;
         thisS.X(:,jj)=(2*m/hbar*sqrt((thisS.v(:,jj)).^2-(thisS.c(:,jj)).^2));
         thisS.Y(:,jj)=(2*pi)./thisS.lambda_nf(:,jj);
         
-        % summary
-        thisS.Xavg(jj)=mean(thisS.X(:,jj),'omitnan');
-        thisS.Xerr(jj)=std(thisS.X(:,jj),'omitnan');
-        thisS.Yavg(jj)=mean(thisS.Y(:,jj),'omitnan');
-        thisS.Yerr(jj)=std(thisS.Y(:,jj),'omitnan');
-        
-        Ssumm(ii)=thisS;
-        
-        %         hdata_theory=ploterr((2*m/hbar*sqrt((thisS.v(:,jj)).^2-(thisS.c(:,jj)).^2)),(2*pi)./thisS.lambda_nf(:,jj),[],[],mm{ii},'hhxy',0);
-        hdata_theory=ploterr(thisS.X(:,jj),thisS.Y(:,jj),[],[],mm{ii},'hhxy',0);
+        % summary - collate peaks across different ALs in same run
+        thisS.X_collate(jj)=mean(thisS.X(:,jj),'omitnan');
+        thisS.X_collate_err(jj)=std(thisS.X(:,jj),'omitnan');
+        thisS.Y_collate(jj)=mean(thisS.Y(:,jj),'omitnan');
+        thisS.Y_collate_err(jj)=std(thisS.Y(:,jj),'omitnan');
+    end
+    
+    % Errors
+    % X-error = 1/2 * relerr(density @ r) + 3/2 * relerr(R AL)
+    % N.B. here I assume 3.3% (same as Nal,N0) for each of those relative uncertainties above
+    relerr=3.3e-2;
+    thisS.Xerr=norm([1/2*relerr,3/2*relerr]).*thisS.X;
+    % Y-error = relerr fringe spacing
+    thisS.Yerr=(thisS.lambda_ff_err(:,1:ndpeak)./thisS.lambda_ff(:,1:ndpeak)).*thisS.Y;
+    
+    % update collate errors
+    % error as max from stdev and sample unc
+    thisS.X_collate_err_tot=max([thisS.X_collate_err;mean(thisS.Xerr,1,'omitnan')],[],1);
+    thisS.Y_collate_err_tot=max([thisS.Y_collate_err;mean(thisS.Yerr,1,'omitnan')],[],1);
+%     % error as mean from stdev and sample unc
+%     thisS.X_collate_err_tot=mean([thisS.X_collate_err;mean(thisS.Xerr,1,'omitnan')],1,'omitnan');
+%     thisS.Y_collate_err_tot=mean([thisS.Y_collate_err;mean(thisS.Yerr,1,'omitnan')],1,'omitnan');
+    
+    S_new(ii)=thisS;
+end
+
+% PLOTTING
+for ii=1:Nexp
+    thisS=S_new(ii);
+    ndpeak=(thisS.N_peak_max-1);
+    if Ndpeakplot<ndpeak
+        ndpeak=Ndpeakplot;
+    end
+    
+    for jj=1:ndpeak
+        hdata_theory=ploterr(thisS.X(:,jj),thisS.Y(:,jj),thisS.Xerr(:,jj),thisS.Yerr(:,jj),mm{ii},'hhxy',0);
         set(hdata_theory(1),namearray,valarray,'Color',cc(jj,:),'MarkerSize',6,'DisplayName',sprintf('%d',jj));
-        %         set(hdata_theory(2),namearray,valarray,'Color',cc(jj,:),'DisplayName','');
-        %         set(hdata_theory(3),namearray,valarray,'Color',cc(jj,:),'DisplayName','');
-        %         p(jj)=hdata_theory(1);
+        set(hdata_theory(2),namearray,valarray,'Color',cc(jj,:),'DisplayName','');
+        set(hdata_theory(3),namearray,valarray,'Color',cc(jj,:),'DisplayName','');
+%                 p(jj)=hdata_theory(1);
     end
 end
 box on;
 axis equal;
+axis square;
 % lgd=legend(p);
 % title(lgd,'Fringe spacing');
 xlabel('$2 m / \hbar \cdot (v^2 - c^2)^{1/2}$ [m$^{-1}$]');
@@ -240,19 +272,22 @@ namearray={'LineWidth','MarkerFaceColor'};      % error bar graphics properties
 valarray={linewidth,'w'};                 % 90 deg (normal) data
 
 cc=distinguishable_colors(Nexp);
-% p=[];
+p=[];
 for ii=1:Nexp
     thisS=S(ii);
-    hdata_theory_summ=ploterr(Ssumm(ii).Xavg,Ssumm(ii).Yavg,Ssumm(ii).Xerr,Ssumm(ii).Yerr,mm{ii},'hhxy',0);
-    set(hdata_theory_summ(1),namearray,valarray,'Color',cc(ii,:),'MarkerSize',6,'DisplayName','none');
+    hdata_theory_summ=ploterr(S_new(ii).X_collate,S_new(ii).Y_collate,...
+        S_new(ii).X_collate_err_tot,S_new(ii).Y_collate_err_tot,...
+        mm{ii},'hhxy',0);
+    %     set(hdata_theory_summ(1),namearray,valarray,'Color',cc(ii,:),'MarkerSize',6,'DisplayName',mlist{ii});
+    set(hdata_theory_summ(1),namearray,valarray,'Color',cc(ii,:),'MarkerSize',6,'DisplayName',sprintf('%d',ii));
     set(hdata_theory_summ(2),namearray,valarray,'Color',cc(ii,:),'DisplayName','');
     set(hdata_theory_summ(3),namearray,valarray,'Color',cc(ii,:),'DisplayName','');
-%     p(ii)=hdata_theory_summ(1);
+    p(ii)=hdata_theory_summ(1);
 end
 box on;
 axis equal;
 axis square;
-% lgd=legend(p);
-% title(lgd,'Fringe spacing');
+lgd=legend(p,'Location','northwest');
+title(lgd,'Exp');
 xlabel('$2 m / \hbar \cdot (v^2 - c^2)^{1/2}$ [m$^{-1}$]');
 ylabel('$2 \pi / \lambda_{NF} $ [m$^{-1}$]');
