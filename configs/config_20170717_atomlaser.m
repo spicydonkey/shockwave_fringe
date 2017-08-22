@@ -58,8 +58,8 @@ n_sm_bgd=15;
 n_sm_post=10;
 
 % peak detection algorithm
-slopethreshold=1e-4;
-ampthreshold=0.1;
+slopethreshold=1e-5;
+ampthreshold=0.05;
 smoothwidth=0;          % 0 to no smoothing in peak finding
 peakgroup=5;
 smoothtype=1;   % smoothing is off
