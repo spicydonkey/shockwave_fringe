@@ -272,7 +272,7 @@ mrk_size=7;
 fontsize=11;
 linewidth=1.8;
 
-papersize=[10,10];
+papersize=[10,7];
 paperposition=[0,0,papersize];
 
 
@@ -287,61 +287,138 @@ hold on;
 namearray={'LineWidth','MarkerFaceColor'};      % error bar graphics properties
 valarray={linewidth,'w'};                 % 90 deg (normal) data
 
-cc=distinguishable_colors(Nexp);
+%%% approx theory - at an angle
+jet_theta=1.1;      % jet angle used
+xth_jet=linspace(0.5,3);
+yth_jet=polyval([cos(jet_theta),0],xth_jet);
+
+% plot
+figure(hfig_dpeak_theory_summ);
+hold on;
+plot(xth_jet,yth_jet,'k--','LineWidth',2);
+
+% cc=distinguishable_colors(Nexp);
+cc_fringe=distinguishable_colors(Ndpeakplot);
 % p=[];
 for ii=1:Nexp
     thisS=S_new(ii);
-    hdata_theory_summ=ploterr(thisS.X_collate,thisS.Y_collate,...
-        thisS.X_collate_err_tot,thisS.Y_collate_err_tot,...
-        mm{ii},'hhxy',0);
-    set(hdata_theory_summ(1),namearray,valarray,'Color',cc(ii,:),'MarkerSize',mrk_size,'DisplayName',sprintf('%d',ii));
-    set(hdata_theory_summ(2),namearray,valarray,'Color',cc(ii,:),'DisplayName','');
-    set(hdata_theory_summ(3),namearray,valarray,'Color',cc(ii,:),'DisplayName','');
-%     p(ii)=hdata_theory_summ(1);
+    
+    ndpeak=(thisS.N_peak_max-1);
+    if Ndpeakplot<ndpeak
+        ndpeak=Ndpeakplot;
+    end
+    for jj=1:ndpeak
+        hdata_theory_summ=ploterr(1e-6*thisS.X_collate(jj),1e-6*thisS.Y_collate(jj),...
+            1e-6*thisS.X_collate_err_tot(jj),1e-6*thisS.Y_collate_err_tot(jj),...
+            mm{ii},'hhxy',0);
+        set(hdata_theory_summ(1),namearray,valarray,'Color',cc_fringe(jj,:),'MarkerSize',mrk_size,'DisplayName',sprintf('%d',ii));
+        set(hdata_theory_summ(2),namearray,valarray,'Color',cc_fringe(jj,:),'DisplayName','');
+        set(hdata_theory_summ(3),namearray,valarray,'Color',cc_fringe(jj,:),'DisplayName','');
+        %     p(ii)=hdata_theory_summ(1);
+    end
 end
 set(gca,'Units','normalized',...
-    'YTick',1e6*[0:0.5:3],...
-    'XTick',1e6*[0:0.5:3],...
+    'YTick',[0:0.5:3],...
+    'XTick',[0:0.5:3],...
     'FontUnits','points',...
     'FontWeight','normal',...
-    'FontSize',fontsize);
+    'FontSize',fontsize,...
+    'PlotBoxAspectRatio',[1,0.6,1]);
 box on;
-axis square;
-xlim(1e6*[0.75,2.75]);
-ylim(1e6*[0.3,1.5]);
+% axis square;
+xlim([0.75,2.75]);
+ylim([0.3,1.5]);
 % lgd=legend(p,'Location','northwest');
 % title(lgd,'Exp');
-xlabel('$2 m / \hbar \cdot (v^2 - c^2)^{1/2}$ [m$^{-1}$]');
-ylabel('$2 \pi / \lambda_{NF} $ [m$^{-1}$]');
+xlabel('$2 m / \hbar \cdot (v^2 - c^2)^{1/2}$ [$\mu$m$^{-1}$]');
+ylabel('$2 \pi / \lambda_{\theta} $ [$\mu$m$^{-1}$]');
 
-%%% linear fit
-% get all data for fit
-X=[];
-Y=[];
-for ii=1:Nexp
-    X=[X,S_new(ii).X_collate];
-    Y=[Y,S_new(ii).Y_collate];
-end
-pfit=polyfit(X,Y,1);
-xfit=1e6*linspace(0.5,3);
-yfit=polyval(pfit,xfit);
+% %%% linear fit
+% % get all data for fit
+% X=[];
+% Y=[];
+% for ii=1:Nexp
+%     X=[X,S_new(ii).X_collate];
+%     Y=[Y,S_new(ii).Y_collate];
+% end
+% pfit=polyfit(X,Y,1);
+% xfit=1e6*linspace(0.5,3);
+% yfit=polyval(pfit,xfit);
+% 
+% % plot
+% figure(hfig_dpeak_theory_summ);
+% hold on;
+% plot(xfit,yfit,'k-.','LineWidth',2);
 
-% plot
-figure(hfig_dpeak_theory_summ);
-hold on;
-plot(xfit,yfit,'k--','LineWidth',2);
+% %%% theory
+% xth=1e6*linspace(0.5,3);
+% yth=polyval([1,0],xth);
+% 
+% % plot
+% figure(hfig_dpeak_theory_summ);
+% hold on;
+% plot(xth,yth,'k-','LineWidth',2);
 
-%%% theory
-xth=xfit;
-yth=polyval([1,0],xth);
-
-% plot
-figure(hfig_dpeak_theory_summ);
-hold on;
-plot(xth,yth,'k-','LineWidth',2);
 
 % save
 if savefigs
     figname=sprintf('data_BCR_%s',datetimestr);
     print(hfig_dpeak_theory_summ,fullfile(path_save,figname),'-dpdf');
+end
+
+%% a representative interference pattern - 1D density profile along jet
+% Run 2 - the second dataset in mlist - for plotting since already used in
+% paper, most fringes too
+% figure params
+mrk_size=7;
+fontsize=11;
+linewidth=2;
+
+papersize=[10,3];
+paperposition=[0,0,papersize];
+
+%%% Data
+hfig_nmod=figure('Units','centimeters',...
+    'PaperUnits','centimeters',...
+    'PaperPositionMode','manual',...
+    'PaperSize',papersize,...
+    'PaperPosition',paperposition);
+hold on;
+
+loadvars={'dn1d','d_1d','ppeak','pal_R'};
+ss=load(fullfile(path_data,mlist{2}),loadvars{:});
+
+pal_id_plot=2;      % the PAL number to plot
+
+% normalise the density profiles:
+xx=ss.d_1d./ss.pal_R;      % normalised distance vector along jet
+ppeak=ss.ppeak;     % hasn't been normed yet
+dn1d=cellfun(@(x) x/max(x),ss.dn1d,'UniformOutput',false);  % diff fringe density
+
+cgray=0.5*[1,1,1];
+hold on;
+for ii=1:length(ppeak{pal_id_plot})
+%     rectangle
+    line(1e-3*ppeak{pal_id_plot}(ii)/ss.pal_R(pal_id_plot)*[1,1],1.1*[-1,1],...
+        'Color',cgray,'LineStyle','--','LineWidth',1.3);
+end
+plot(xx(pal_id_plot,:),dn1d{pal_id_plot},'Color','k','LineWidth',linewidth);
+box on;
+hold on;
+% axis tight;
+xlim([0,1.2]);
+ylim([-1.1,1.1]);
+
+xlabel('$r_{FF}$');
+ylabel('$\widetilde{n}$ (a.u)');
+
+set(gca,'Units','normalized',...
+    'FontUnits','points',...
+    'FontWeight','normal',...
+    'FontSize',fontsize);
+
+% save
+if savefigs
+    figname=sprintf('nmod_%s',datetimestr);
+    print(hfig_nmod,fullfile(path_save,figname),'-dpdf');
 end
