@@ -388,7 +388,7 @@ hold on;
 loadvars={'dn1d','d_1d','ppeak','pal_R'};
 ss=load(fullfile(path_data,mlist{2}),loadvars{:});
 
-pal_id_plot=2;      % the PAL number to plot
+pal_id_plot=4;      % the PAL number to plot
 
 % normalise the density profiles:
 xx=ss.d_1d./ss.pal_R;      % normalised distance vector along jet
@@ -397,7 +397,7 @@ dn1d=cellfun(@(x) x/max(x),ss.dn1d,'UniformOutput',false);  % diff fringe densit
 
 cgray=0.5*[1,1,1];
 hold on;
-for ii=1:length(ppeak{pal_id_plot})
+for ii=1:min(length(ppeak{pal_id_plot}),Ndpeakplot+1)
 %     rectangle
     line(1e-3*ppeak{pal_id_plot}(ii)/ss.pal_R(pal_id_plot)*[1,1],1.1*[-1,1],...
         'Color',cgray,'LineStyle','--','LineWidth',1.3);
