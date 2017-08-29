@@ -291,54 +291,56 @@ if vgraph>0
 end
 
 %% PAL density image
-if verbose>0
-    %%% 3D density profile (full)
-    nden3=cellfun(@(x) density3d(x,edges),pal_zxy0,'UniformOutput',false);
-    
-    %%% 2D projection - projected
-    % nden2: 2D projected density (unit like m^-2), Npulse X 3(dims Z,X,Y
-    % int'd) cell-array
-    nden2=cell(pal_nseq,3);
-    for ii=1:pal_nseq
-        for jj=1:3
-            nden2{ii,jj}=squeeze(mean(nden3{ii},jj))*(edges{jj}(end)-edges{jj}(1));    % 2D density
-        end
+%%% 3D density profile (full)
+nden3=cellfun(@(x) density3d(x,edges),pal_zxy0,'UniformOutput',false);
+
+%%% 2D projection - projected
+% nden2: 2D projected density (unit like m^-2), Npulse X 3(dims Z,X,Y
+% int'd) cell-array
+nden2=cell(pal_nseq,3);
+for ii=1:pal_nseq
+    for jj=1:3
+        nden2{ii,jj}=squeeze(mean(nden3{ii},jj))*(edges{jj}(end)-edges{jj}(1));    % 2D density
     end
-    
-    % summarise
-    if vgraph>0
-        if verbose>1
-            for ii=1:3
-                hfig_pal_nden2(ii)=figure();
+end
+
+% summarise
+if vgraph>0
+    if verbose>1
+        for ii=1:3
+            hfig_pal_nden2(ii)=figure();
+            
+            % get image X,Y axis - NOT CYCLIC
+            ord=[1,2,3];
+            ord_xy=ord([1:ii-1,ii+1:3]);    % pop the integrated dim out
+            
+            % plot each PAL as subfigure
+            for jj=1:pal_nseq
+                subplot(plot_nrow,plot_ncol,jj);
                 
-                % get image X,Y axis - NOT CYCLIC
-                ord=[1,2,3];
-                ord_xy=ord([1:ii-1,ii+1:3]);    % pop the integrated dim out
+                % quick and dirty way to do density plot - imagesc
+                imagesc(cents{ord_xy(2)},cents{ord_xy(1)},nden2{jj,ii});
+                set(gca,'YDir','normal');   % orient it the correct way
                 
-                % plot each PAL as subfigure
-                for jj=1:pal_nseq
-                    subplot(plot_nrow,plot_ncol,jj);
-                    
-                    % quick and dirty way to do density plot - imagesc
-                    imagesc(cents{ord_xy(2)},cents{ord_xy(1)},nden2{jj,ii});
-                    set(gca,'YDir','normal');   % orient it the correct way
-                    
-                    % annotate
-                    axis equal;
-                    box on;
-                    ht=sprintf('(%d) %0.2g / %0.2g',jj,Nal(jj),N0(jj));
-                    title(ht);
-                end
-                
-                if configs.flags.savedata
-                    figname=sprintf('al_2D_%d',ii);
-                    saveas(hfig_pal_nden2(ii),[configs.files.dirout,'/',figname,'.png']);
-                    saveas(hfig_pal_nden2(ii),[configs.files.dirout,'/',figname,'.fig']);
-                end
+                % annotate
+                axis equal;
+                box on;
+                ht=sprintf('(%d) %0.2g / %0.2g',jj,Nal(jj),N0(jj));
+                title(ht);
+            end
+            
+            if configs.flags.savedata
+                figname=sprintf('al_2D_%d',ii);
+                saveas(hfig_pal_nden2(ii),[configs.files.dirout,'/',figname,'.png']);
+                saveas(hfig_pal_nden2(ii),[configs.files.dirout,'/',figname,'.fig']);
             end
         end
     end
 end
+
+%% Improve AL centre
+
+
 
 %% 2D slices
 if vgraph>1
