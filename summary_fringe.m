@@ -16,6 +16,7 @@ datetimestr=datestr(datetime,'yyyymmdd_HHMMSS');    % timestamp when function ca
 
 %%% plot
 linewidth=1.5;
+cgray=0.5*[1,1,1];
 
 
 %% load data
@@ -27,7 +28,7 @@ Nexp=length(mlist);     % number of datasets
 S=cell(Nexp,1);     % S is cell array of structs
 for ii=1:Nexp
     varsummary={'N_peak_max', 'lambda_ff', 'lambda_ff_err', 'Nal', 'Nal_err_tot', 'N0', 'N0_err_fit',...
-        'v','c','lambda_nf'};
+        'v','c','lambda_nf', 'eff_al'};
     S{ii}=load(fullfile(path_data,mlist{ii}),varsummary{:});
 end
 % tidy structure
@@ -38,79 +39,79 @@ Npeakmax=max([S.N_peak_max]);
 
 % plot
 cc=distinguishable_colors(Npeakmax);
-mm={'o','s','^','x','.','*','+','d','v','>','<','p','h'};
+mm={'o','s','^','d','x','.','*','+','v','>','<','p','h'};
 
 
 %% plot - fringe spacing vs Nal
-hfig_dpeak_vs_Npal=figure();
-
-namearray={'LineWidth','MarkerFaceColor'};      % error bar graphics properties
-valarray={linewidth,'w'};                 % 90 deg (normal) data
-
-for ii=1:Nexp
-    thisS=S(ii);
-    ndpeak=(thisS.N_peak_max-1);
-    if Ndpeakplot<ndpeak
-        ndpeak=Ndpeakplot;
-    end
-%     p=zeros(1,ndpeak);
-    for jj=1:ndpeak
-        hold on;
-%         hdata_pal_n=ploterr(thisS.Nal,thisS.lambda_ff(:,jj),thisS.AL_N_SD,thisS.lambda_ff_err(:,jj),mm{ii},'hhxy',0);
-hdata_pal_n=ploterr(thisS.Nal,1e3*thisS.lambda_ff(:,jj),thisS.Nal_err_tot,1e3*thisS.lambda_ff_err(:,jj),mm{ii},'hhxy',0);
-        set(hdata_pal_n(1),namearray,valarray,'Color',cc(jj,:),'MarkerSize',6,'DisplayName',sprintf('%d',jj));
-        set(hdata_pal_n(2),namearray,valarray,'Color',cc(jj,:),'DisplayName','');
-        set(hdata_pal_n(3),namearray,valarray,'Color',cc(jj,:),'DisplayName','');
-%         p(jj)=hdata_pal_n(1);
-    end
-end
-box on;
-% lgd=legend(p);
-% title(lgd,'Fringe spacing');
-xlabel('$N_{AL}$');
-ylabel('Fringe spacing [mm]');
-
-%%% save fig
-if savefigs>0
-    figname=sprintf('dpeak_vs_Npal_%s',datetimestr);
-    saveas(hfig_dpeak_vs_Npal,fullfile(path_save,[figname,'.png']));
-    saveas(hfig_dpeak_vs_Npal,fullfile(path_save,[figname,'.fig']));
-end
+% hfig_dpeak_vs_Npal=figure();
+% 
+% namearray={'LineWidth','MarkerFaceColor'};      % error bar graphics properties
+% valarray={linewidth,'w'};                 % 90 deg (normal) data
+% 
+% for ii=1:Nexp
+%     thisS=S(ii);
+%     ndpeak=(thisS.N_peak_max-1);
+%     if Ndpeakplot<ndpeak
+%         ndpeak=Ndpeakplot;
+%     end
+% %     p=zeros(1,ndpeak);
+%     for jj=1:ndpeak
+%         hold on;
+% %         hdata_pal_n=ploterr(thisS.Nal,thisS.lambda_ff(:,jj),thisS.AL_N_SD,thisS.lambda_ff_err(:,jj),mm{ii},'hhxy',0);
+% hdata_pal_n=ploterr(thisS.Nal,1e3*thisS.lambda_ff(:,jj),thisS.Nal_err_tot,1e3*thisS.lambda_ff_err(:,jj),mm{ii},'hhxy',0);
+%         set(hdata_pal_n(1),namearray,valarray,'Color',cc(jj,:),'MarkerSize',6,'DisplayName',sprintf('%d',jj));
+%         set(hdata_pal_n(2),namearray,valarray,'Color',cc(jj,:),'DisplayName','');
+%         set(hdata_pal_n(3),namearray,valarray,'Color',cc(jj,:),'DisplayName','');
+% %         p(jj)=hdata_pal_n(1);
+%     end
+% end
+% box on;
+% % lgd=legend(p);
+% % title(lgd,'Fringe spacing');
+% xlabel('$N_{AL}$');
+% ylabel('Fringe spacing [mm]');
+% 
+% %%% save fig
+% if savefigs>0
+%     figname=sprintf('dpeak_vs_Npal_%s',datetimestr);
+%     saveas(hfig_dpeak_vs_Npal,fullfile(path_save,[figname,'.png']));
+%     saveas(hfig_dpeak_vs_Npal,fullfile(path_save,[figname,'.fig']));
+% end
 
 %% plot - fringe spacing vs N0
-hfig_dpeak_vs_N0=figure();
-
-namearray={'LineWidth','MarkerFaceColor'};      % error bar graphics properties
-valarray={linewidth,'w'};                 % 90 deg (normal) data
-
-for ii=1:Nexp
-    thisS=S(ii);
-    ndpeak=(thisS.N_peak_max-1);
-    if Ndpeakplot<ndpeak
-        ndpeak=Ndpeakplot;
-    end
-%     p=zeros(1,ndpeak);
-    for jj=1:ndpeak
-        hold on;
-        hdata_pal_n=ploterr(thisS.N0,1e3*thisS.lambda_ff(:,jj),thisS.N0_err_fit,1e3*thisS.lambda_ff_err(:,jj),mm{ii},'hhxy',0);
-        set(hdata_pal_n(1),namearray,valarray,'Color',cc(jj,:),'MarkerSize',6,'DisplayName',sprintf('%d',jj));
-        set(hdata_pal_n(2),namearray,valarray,'Color',cc(jj,:),'DisplayName','');
-        set(hdata_pal_n(3),namearray,valarray,'Color',cc(jj,:),'DisplayName','');
-%         p(jj)=hdata_pal_n(1);
-    end
-end
-box on;
-% lgd=legend(p);
-% title(lgd,'Fringe spacing');
-xlabel('$N_{0}$');
-ylabel('Fringe spacing [mm]');
-
-%%% save fig
-if savefigs>0
-    figname=sprintf('dpeak_vs_N0_%s',datetimestr);
-    saveas(hfig_dpeak_vs_N0,fullfile(path_save,[figname,'.png']));
-    saveas(hfig_dpeak_vs_N0,fullfile(path_save,[figname,'.fig']));
-end
+% hfig_dpeak_vs_N0=figure();
+% 
+% namearray={'LineWidth','MarkerFaceColor'};      % error bar graphics properties
+% valarray={linewidth,'w'};                 % 90 deg (normal) data
+% 
+% for ii=1:Nexp
+%     thisS=S(ii);
+%     ndpeak=(thisS.N_peak_max-1);
+%     if Ndpeakplot<ndpeak
+%         ndpeak=Ndpeakplot;
+%     end
+% %     p=zeros(1,ndpeak);
+%     for jj=1:ndpeak
+%         hold on;
+%         hdata_pal_n=ploterr(thisS.N0,1e3*thisS.lambda_ff(:,jj),thisS.N0_err_fit,1e3*thisS.lambda_ff_err(:,jj),mm{ii},'hhxy',0);
+%         set(hdata_pal_n(1),namearray,valarray,'Color',cc(jj,:),'MarkerSize',6,'DisplayName',sprintf('%d',jj));
+%         set(hdata_pal_n(2),namearray,valarray,'Color',cc(jj,:),'DisplayName','');
+%         set(hdata_pal_n(3),namearray,valarray,'Color',cc(jj,:),'DisplayName','');
+% %         p(jj)=hdata_pal_n(1);
+%     end
+% end
+% box on;
+% % lgd=legend(p);
+% % title(lgd,'Fringe spacing');
+% xlabel('$N_{0}$');
+% ylabel('Fringe spacing [mm]');
+% 
+% %%% save fig
+% if savefigs>0
+%     figname=sprintf('dpeak_vs_N0_%s',datetimestr);
+%     saveas(hfig_dpeak_vs_N0,fullfile(path_save,[figname,'.png']));
+%     saveas(hfig_dpeak_vs_N0,fullfile(path_save,[figname,'.fig']));
+% end
 
 %% scaling
 % % try:
@@ -268,9 +269,9 @@ ylabel('$2 \pi / \lambda_{NF} $ [m$^{-1}$]');
 
 %% BCR theory - collate AL from each run
 % figure params
-mrk_size=7;
+mrk_size=5;
 fontsize=11;
-linewidth=1.8;
+linewidth=1.5;
 
 papersize=[10,7];
 paperposition=[0,0,papersize];
@@ -284,8 +285,10 @@ hfig_dpeak_theory_summ=figure('Units','centimeters',...
     'PaperPosition',paperposition);
 hold on;
 
-namearray={'LineWidth','MarkerFaceColor'};      % error bar graphics properties
-valarray={linewidth,'w'};                 % 90 deg (normal) data
+% namearray={'LineWidth','MarkerFaceColor'};      % error bar graphics properties
+% valarray={linewidth,'w'};                 % 90 deg (normal) data
+namearray={'LineWidth'};
+valarray={linewidth};
 
 %%% approx theory - at an angle
 jet_theta=1.1;      % jet angle used
@@ -298,8 +301,11 @@ hold on;
 plot(xth_jet,yth_jet,'k--','LineWidth',2);
 
 % cc=distinguishable_colors(Nexp);
-cc_fringe=distinguishable_colors(Ndpeakplot);
-% p=[];
+% cc_fringe=distinguishable_colors(Ndpeakplot);
+% cc_fringe=gray(Ndpeakplot+2);
+cc_fringe=viridis(Ndpeakplot);
+p=[];
+hexpconfig=[];
 for ii=1:Nexp
     thisS=S_new(ii);
     
@@ -311,11 +317,17 @@ for ii=1:Nexp
         hdata_theory_summ=ploterr(1e-6*thisS.X_collate(jj),1e-6*thisS.Y_collate(jj),...
             1e-6*thisS.X_collate_err_tot(jj),1e-6*thisS.Y_collate_err_tot(jj),...
             mm{ii},'hhxy',0);
-        set(hdata_theory_summ(1),namearray,valarray,'Color',cc_fringe(jj,:),'MarkerSize',mrk_size,'DisplayName',sprintf('%d',ii));
-        set(hdata_theory_summ(2),namearray,valarray,'Color',cc_fringe(jj,:),'DisplayName','');
-        set(hdata_theory_summ(3),namearray,valarray,'Color',cc_fringe(jj,:),'DisplayName','');
+        set(hdata_theory_summ(1),namearray,valarray,'Color',cc_fringe(jj,:),'MarkerFaceColor',cc_fringe(jj,:),'MarkerSize',mrk_size,'DisplayName',sprintf('%d',ii));
+        set(hdata_theory_summ(2),namearray,valarray,'Color',cc_fringe(jj,:),'MarkerFaceColor',cc_fringe(jj,:),'DisplayName','');
+        set(hdata_theory_summ(3),namearray,valarray,'Color',cc_fringe(jj,:),'MarkerFaceColor',cc_fringe(jj,:),'DisplayName','');
         %     p(ii)=hdata_theory_summ(1);
     end
+    
+    % legend for experimental configs
+   	hexpconfig(ii)=plot(NaN,NaN,mm{ii},...
+        'Color',cgray,'MarkerFaceColor',cgray,...
+        'DisplayName',sprintf('%0.2g, %0.2g',thisS.N0(1),thisS.eff_al));
+    p(ii)=hexpconfig(ii);
 end
 set(gca,'Units','normalized',...
     'YTick',[0:0.5:3],...
@@ -328,8 +340,15 @@ box on;
 % axis square;
 xlim([0.75,2.75]);
 ylim([0.3,1.5]);
+
+%legend
 % lgd=legend(p,'Location','northwest');
-% title(lgd,'Exp');
+% set(lgd,'Units','normalized',...
+%     'Position',[0.25 0.64 0.1 0.1],...
+%     'FontSize',8,...
+%     'Box','off');
+% title(lgd,'$N_{0},\eta_{\textrm{RF}}$');
+
 xlabel('$2 m / \hbar \cdot (v^2 - c^2)^{1/2}$ [$\mu$m$^{-1}$]');
 ylabel('$2 \pi / \lambda_{\theta} $ [$\mu$m$^{-1}$]');
 
@@ -369,6 +388,13 @@ end
 %% a representative interference pattern - 1D density profile along jet
 % Run 2 - the second dataset in mlist - for plotting since already used in
 % paper, most fringes too
+
+pal_id_plot=6;      % the PAL number to plot
+
+xlim_cfg=[0,0.7];
+ytick_cfg=-1:1:1;
+xtick_cfg=xlim_cfg(1):0.2:xlim_cfg(2);
+
 % figure params
 mrk_size=7;
 fontsize=11;
@@ -388,14 +414,11 @@ hold on;
 loadvars={'dn1d','d_1d','ppeak','pal_R'};
 ss=load(fullfile(path_data,mlist{2}),loadvars{:});
 
-pal_id_plot=4;      % the PAL number to plot
-
 % normalise the density profiles:
 xx=ss.d_1d./ss.pal_R;      % normalised distance vector along jet
 ppeak=ss.ppeak;     % hasn't been normed yet
 dn1d=cellfun(@(x) x/max(x),ss.dn1d,'UniformOutput',false);  % diff fringe density
 
-cgray=0.5*[1,1,1];
 hold on;
 for ii=1:min(length(ppeak{pal_id_plot}),Ndpeakplot+1)
 %     rectangle
@@ -406,13 +429,16 @@ plot(xx(pal_id_plot,:),dn1d{pal_id_plot},'Color','k','LineWidth',linewidth);
 box on;
 hold on;
 % axis tight;
-xlim([0,1.2]);
+xlim(xlim_cfg);
 ylim([-1.1,1.1]);
 
-xlabel('$r_{FF}$');
-ylabel('$\widetilde{n}$ (a.u)');
+xlabel('$r/R_{\textrm{AL}}$');
+ylabel('$\widetilde{n}$ (arb. u.)');
 
 set(gca,'Units','normalized',...
+    'XTick',xtick_cfg,...
+    'YTick',ytick_cfg,...
+    'XAxisLocation','top',...
     'FontUnits','points',...
     'FontWeight','normal',...
     'FontSize',fontsize);
