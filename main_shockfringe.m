@@ -3,10 +3,10 @@ clear all; close all; clc;
 
 %% configs
 % User path to config
-path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_20170716_atomlaser.m';
+% path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_20170716_atomlaser.m';
 % path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_20170717_atomlaser.m';
 % path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_run1.m';
-% path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_run2.m';
+path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_run2.m';
 
 % load config
 run(path_config);
@@ -422,9 +422,9 @@ x_edge=linspace(0,5e-3,100);   % single sided
 x_cent=x_edge(1:end-1)+0.5*diff(x_edge);
 
 % preallocate
-nden_r=zeros(pal_nseq,length(r_cent));     % radial density [dimension TODO]
+nden_r=zeros(pal_nseq,length(r_cent));     % radial density [num/m^3]
 pal_R=zeros(pal_nseq,1);        % charactersitic radius of AL [m]
-nden_x=zeros(pal_nseq,length(x_cent));	% atom laser density along thickness [dimension TODO]
+nden_x=zeros(pal_nseq,length(x_cent));	% atom laser density along thickness [num/m^3]
 pal_Rx=zeros(pal_nseq,1);	% atom laser thickness (half-width) [m]
 
 if vgraph>0
@@ -459,7 +459,8 @@ for ii=1:pal_nseq
     pal_Rx(ii)=x_cent(i_max+i_halfmax-1);  % half maximum width
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
-    % normalise density by the integration volume (other dims)
+    % normalise density by the integration volume (other dims) --> 3D
+    % density
     this_nden_r=this_nden_r/(2*pal_Rx(ii));
     this_nden_x=this_nden_x/(pi*pal_R(ii)^2);
     
@@ -682,13 +683,13 @@ t0=mean(pal_R/(tof*g));       % AL expansion time [s] TODO - explain avg
 lambda_nf=lambda_ff.*t0/tof;	% near-field density modulation wavelength [m]
 npeak=size(lambda_nf,2);
 
-%%% approximate velocity
+%%% approximate velocity - at peaks
 v_al_max=pal_R/tof;    % velocity at AL radius
 % r_fringe=mean(Rff_peak./pal_R,1,'omitnan');   % ratio of distance from ith fringe to 
 r_fringe=Rff_peak./pal_R;   % ratio of distance from ith fringe to 
 v=v_al_max.*r_fringe;   % approx velocity at shock wave (row - AL; col - fringe)
 
-%%% approximate speed of sound
+%%% approximate speed of sound - at peaks
 % c=4.2e-12*sqrt(g*tof^6*Nal./(pi*pal_R.^5.*pal_Rx));     % approx speed of sound - uniform density approx
 
 % approximate from radial density profile
@@ -705,20 +706,101 @@ c_const=sqrt((4*pi*hbar^2*5.56e-9/m)/m);
 c=c_const*sqrt(nden_Rnf);           % evaluate speed of sound
 
 %%% plot
-hfig_theory=figure();
-for ii=1:npeak
-%     plot((2*m/hbar*sqrt(v(:,ii).^2-c.^2)),(2*pi)./lambda_nf(:,ii),'o');
-%     % for uniform speed of sound approx
-    plot((2*m/hbar*sqrt(v(:,ii).^2-c(:,ii).^2)),(2*pi)./lambda_nf(:,ii),'o');
-    hold on;
+if vgraph>0
+    hfig_theory=figure();
+    for ii=1:npeak
+        %     plot((2*m/hbar*sqrt(v(:,ii).^2-c.^2)),(2*pi)./lambda_nf(:,ii),'o');
+        %     % for uniform speed of sound approx
+        plot((2*m/hbar*sqrt(v(:,ii).^2-c(:,ii).^2)),(2*pi)./lambda_nf(:,ii),'o');
+        hold on;
+    end
+    xlabel('$2 m / hbar \cdot (v^2 - c^2)^{1/2}$');
+    ylabel('$2 \pi / \lambda $ [m$^{-1}$]');
+    
+    if configs.flags.savedata
+        figname=sprintf('theory_curve');
+        saveas(hfig_theory,[configs.files.dirout,'/',figname,'.png']);
+        saveas(hfig_theory,[configs.files.dirout,'/',figname,'.fig']);
+    end
 end
-xlabel('$2 m / hbar \cdot (v^2 - c^2)^{1/2}$');
-ylabel('$2 \pi / \lambda $ [m$^{-1}$]');
 
-if configs.flags.savedata
-    figname=sprintf('theory_curve');
-    saveas(hfig_theory,[configs.files.dirout,'/',figname,'.png']);
-    saveas(hfig_theory,[configs.files.dirout,'/',figname,'.fig']);
+%% evaluate parameters at all t dynamics
+% evaluate flow velocity and speed of sound through the early t dynamics
+%%% velocity
+% t_dyn = 2*v/g
+% v = Rff / TOF
+v_dyn=r_cent/tof;
+t_dyn=2*v_dyn/g;
+
+%%% speed of sound
+% n(v) ~ nFF(R)*(TOF/t0)^3
+n_dyn=nden_r.*(tof./t0).^3;
+c_dyn=c_const*sqrt(n_dyn);
+
+%%% Mach number
+mach_dyn=v_dyn./c_dyn;
+
+%%% BEC exit time
+t_exit=2*(pal_R./tof)/g;
+
+%%% plot
+if vgraph>0
+    % t vs v,c,n
+    hfig_dyn_vcn=figure();
+    fpapersize=[500,250];
+    set(gcf,'Units','Pixels','Position',[0,0,fpapersize],...
+        'PaperUnits','points','PaperPosition',[0,0,fpapersize],...
+        'PaperSize',fpapersize);
+    subplot(1,3,1);
+    plot(1e3*t_dyn,1e3*v_dyn,'k','LineWidth',1.5);
+    xlabel('t [ms]');
+    ylabel('v [mm/s]');
+    box on;
+    set(gca,'FontSize',11);
+    
+    subplot(1,3,2);
+    for ii=1:pal_nseq
+        hold on;
+        plot(1e3*t_dyn,1e3*c_dyn(ii,:),...
+            'Color',cc(ii,:),'LineWidth',1.5);
+    end
+    xlabel('t [ms]');
+    ylabel('c [mm/s]');
+    box on;
+    set(gca,'FontSize',11);
+    
+    subplot(1,3,3);
+    for ii=1:pal_nseq
+        hold on;
+        plot(1e3*t_dyn,n_dyn(ii,:),...
+            'Color',cc(ii,:),'LineWidth',1.5);
+    end
+    xlabel('t [ms]');
+    ylabel('n [m$^{-3}$]');
+    box on;
+    set(gca,'FontSize',11);
+    
+    % Mach number
+    hfig_dyn_mach=figure();
+    for ii=1:pal_nseq
+        hold on;
+        plot(1e3*t_dyn(t_dyn<t_exit(ii)),mach_dyn(ii,t_dyn<t_exit(ii)),...
+            'Color',cc(ii,:),'LineWidth',1.5);
+    end
+    box on;
+    xlabel('t [ms]');
+    ylabel('Mach number');
+    
+%     % save figs
+%     if configs.flags.savedata
+%         figname=sprintf('dyn_vcn');
+%         saveas(hfig_dyn_vcn,[configs.files.dirout,'/',figname,'.png']);
+%         saveas(hfig_dyn_vcn,[configs.files.dirout,'/',figname,'.fig']);
+%         
+%         figname=sprintf('dyn_mach');
+%         saveas(hfig_dyn_mach,[configs.files.dirout,'/',figname,'.png']);
+%         saveas(hfig_dyn_mach,[configs.files.dirout,'/',figname,'.fig']);
+%     end
 end
 
 %% end of code %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
