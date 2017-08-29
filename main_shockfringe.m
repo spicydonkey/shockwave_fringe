@@ -6,7 +6,10 @@ clear all; close all; clc;
 % path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_20170716_atomlaser.m';
 % path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_20170717_atomlaser.m';
 % path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_run1.m';
-path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_run2.m';
+% path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_run2.m';
+
+path_config='C:\David\matlab\shockwave_fringe\configs\config_20170716_atomlaser.m';
+% path_config='C:\David\matlab\shockwave_fringe\configs\config_20170717_atomlaser.m';
 
 % load config
 run(path_config);
@@ -338,8 +341,69 @@ if vgraph>0
     end
 end
 
-%% Improve AL centre
+%% Improve AL centering
+cc=distinguishable_colors(pal_nseq);	% color set for plotting each AL
+zcents=cents{1};
+pal_cent_imp=zeros(pal_nseq,3);
 
+% %%% METHOD 1
+% % NOTE: not very good. shifts Z too far from centre
+% % Y-centre from Y-component of COM is accurate
+% % Z-centre improved from COM by taking lowest density point along Z (Y=0)
+% 
+% lim_zind=[320,370];     % Z-center limits to search for centre by minimum density
+% 
+% if vgraph>0
+%     hfig_zcent_imp=figure();
+% end
+% 
+% [~,ind_y0]=min(abs(cents{3}));      % get index to zero Y-centre
+% for ii=1:pal_nseq
+%     % improves only Z-coord
+%     nz_this=smooth(nden2{ii,2}(:,ind_y0),20);   % smoothed density profile along Z
+%     
+%     [~,ind_zcent]=min(nz_this(lim_zind(1):lim_zind(2)));
+%     ind_zcent=ind_zcent+lim_zind(1)-1;      % shift
+%     
+%     pal_cent_imp(ii,1)=zcents(ind_zcent);
+%     
+%     if vgraph>0
+%         hold on;
+%         plot(nz_this,'Color',cc(ii,:));
+%         plot(ind_zcent,nz_this(ind_zcent),'o','Color',cc(ii,:));
+%     end
+% end
+
+%%% METHOD 2
+% NOTE:
+% find centre of AL by applying a threshold filter at mean density
+if vgraph>0
+    hfig_zcent_imp=figure();
+end
+for ii=1:pal_nseq
+    % threshold
+    nden2_this=nden2{ii,2};
+    nyz_sat=nden2_this>mean(mean(nden2_this));      % bitmap
+    
+    [ind_zcent,~]=find(nyz_sat);
+    ind_zcent=round(mean(ind_zcent));
+    
+    pal_cent_imp(ii,1)=zcents(ind_zcent);
+    
+    if vgraph>0
+        hold on;
+        subplot(plot_nrow,plot_ncol,ii);
+        imagesc(nyz_sat);
+        set(gca,'YDir','normal');
+    end
+end
+
+
+%%% Recentre PAL
+for ii=1:pal_nseq
+    % pal_zxy0{ii}=cellfun(@(x) x-repmat(pal_cent_avg(ii,:),[size(x,1),1]),pal_zxy{ii},'UniformOutput',false);
+    pal_zxy0{ii}=cellfun(@(x) x-repmat(pal_cent_imp(ii,:),[size(x,1),1]),pal_zxy0{ii},'UniformOutput',false);
+end
 
 
 %% 2D slices
@@ -408,7 +472,7 @@ if vgraph>1
     % free up memory
     clearvars mov;
 end
-clearvars nden3;
+% clearvars nden3;
 
 
 %% Characterise AL
