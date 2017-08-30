@@ -5,7 +5,7 @@
 %% CONFIG
 Ndpeakplot=5;    % number of fringe spacings to plot
 
-savefigs=0;
+savefigs=1;
 path_save='C:\Users\HE BEC\Desktop\shock_summary';
 
 path_data='C:\Users\HE BEC\Documents\lab\shockwave\summary\data\ver7';
@@ -324,9 +324,11 @@ for ii=1:Nexp
     end
     
     % legend for experimental configs
+    displayname=sprintf('%0.2g, %0.2g',thisS.N0(1),thisS.eff_al);
+    displayname=strrep(displayname,'+0','');
    	hexpconfig(ii)=plot(NaN,NaN,mm{ii},...
         'Color',cgray,'MarkerFaceColor',cgray,...
-        'DisplayName',sprintf('%0.2g, %0.2g',thisS.N0(1),thisS.eff_al));
+        'DisplayName',displayname);
     p(ii)=hexpconfig(ii);
 end
 set(gca,'Units','normalized',...
@@ -341,13 +343,13 @@ box on;
 xlim([0.75,2.75]);
 ylim([0.3,1.5]);
 
-%legend
-% lgd=legend(p,'Location','northwest');
-% set(lgd,'Units','normalized',...
-%     'Position',[0.25 0.64 0.1 0.1],...
-%     'FontSize',8,...
-%     'Box','off');
-% title(lgd,'$N_{0},\eta_{\textrm{RF}}$');
+% legend
+lgd=legend(p,'Location','northwest');
+set(lgd,'Units','normalized',...
+    'Position',[0.25 0.64 0.1 0.1],...
+    'FontSize',8,...
+    'Box','on');
+title(lgd,'$N_{0},\eta_{\textrm{RF}}$');
 
 xlabel('$2 m / \hbar \cdot (v^2 - c^2)^{1/2}$ [$\mu$m$^{-1}$]');
 ylabel('$2 \pi / \lambda_{\theta} $ [$\mu$m$^{-1}$]');

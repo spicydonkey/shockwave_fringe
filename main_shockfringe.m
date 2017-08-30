@@ -381,15 +381,16 @@ if vgraph>0
     hfig_zcent_imp=figure();
 end
 for ii=1:pal_nseq
-    % threshold
+    % apply threshold to AL density profile
     nden2_this=nden2{ii,2};
-    nyz_sat=nden2_this>mean(mean(nden2_this));      % bitmap
+    nyz_sat=nden2_this>mean(mean(nden2_this));      % bitmap image
     
     [ind_zcent,~]=find(nyz_sat);
     ind_zcent=round(mean(ind_zcent));
     
     pal_cent_imp(ii,1)=zcents(ind_zcent);
     
+    % show thresholded images
     if vgraph>0
         hold on;
         subplot(plot_nrow,plot_ncol,ii);
@@ -401,7 +402,6 @@ end
 
 %%% Recentre PAL
 for ii=1:pal_nseq
-    % pal_zxy0{ii}=cellfun(@(x) x-repmat(pal_cent_avg(ii,:),[size(x,1),1]),pal_zxy{ii},'UniformOutput',false);
     pal_zxy0{ii}=cellfun(@(x) x-repmat(pal_cent_imp(ii,:),[size(x,1),1]),pal_zxy0{ii},'UniformOutput',false);
 end
 
@@ -607,24 +607,76 @@ pal_nden_exp=Nal./pal_vol;
 
 %% Check AL radius - N0, N_AL dependency
 % R: very good!
-hfig_Ral_N=figure();
-
-rerr=(N0_err_fit./N0);
-scaleexp=1/5;
-ploterr(N0.^(scaleexp),pal_R,rerr*(scaleexp),[],'hhxy',0);
-
-xlabel('$N_{0}^{1/5}$');
-ylabel('R HWHM$_{AL} [m]$');
-
-% X
-hfig_Xal_N=figure();
-
-scaleexp=1/5;
-ploterr(N0.^(scaleexp),pal_Rx,rerr*(scaleexp),[],'hhxy',0);
-
-xlabel('$N_{0}^{1/5}$');
-ylabel('X HWHM$_{AL} [m]$');
-
+% X (thickness): not so good. breathing mode?
+if verbose>0 && vgraph>0
+    logtol=1.5;
+    linewidth=1.5;
+    amarkersize=6;
+    fontsize=11;
+%     scaleexp=1/5;       % proportional to sqrt of chemical potential
+    
+    hfig_AL_scaling=figure();
+    p=[];
+    pp=[];
+    
+    %%% Radius
+    p(1)=plot(N0,1e3*pal_R,'o',...
+        'MarkerEdgeColor','k','MarkerFaceColor',cc(1,:),'MarkerSize',amarkersize,...
+        'DisplayName','Radius');
+    
+    % power-law fit
+    xx=log(N0);
+    yy=log(1e3*pal_R);
+    pfit_al_r=polyfit(xx,yy,1);
+    xxfit=linspace(min(xx),max(xx),2);
+    yyfit=polyval(pfit_al_r,xxfit);
+    hold on;
+    pp(1)=plot(exp(xxfit),exp(yyfit),'k-','LineWidth',linewidth);
+    uistack(pp(1),'bottom');
+    
+    %%% Thickness
+    p(2)=plot(N0,1e3*pal_Rx,'^',...
+        'MarkerEdgeColor','k','MarkerFaceColor',cc(2,:),'MarkerSize',amarkersize,...
+        'DisplayName','Thickness');
+    
+    % power-law fit
+    xx=log(N0);
+    yy=log(1e3*pal_Rx);
+    pfit_al_x=polyfit(xx,yy,1);
+    xxfit=linspace(min(xx),max(xx),2);
+    yyfit=polyval(pfit_al_x,xxfit);
+    hold on;
+    pp(2)=plot(exp(xxfit),exp(yyfit),'k--','LineWidth',linewidth);
+    uistack(pp(2),'bottom');    
+    
+    set(gca,'XScale','log');
+    set(gca,'YScale','log');
+    xlim(minmax_logtol(N0,logtol));
+    ylim(minmax_logtol(1e3*[pal_R;pal_Rx],logtol));
+    
+    %%% annotation
+    xlabel('$N_{0}$');
+    ylabel('$R_{\textrm{HWHM}}$ [mm]');
+    
+    set(gca,'Units','normalized',...
+        'FontUnits','points',...
+        'FontWeight','normal',...
+        'FontSize',fontsize,...
+        'PlotBoxAspectRatio',[1,0.6,1]);
+    box on;
+    
+    % Legend
+    lgd=legend(p,'Location','northwest');
+    set(lgd,'Units','normalized',...
+        'FontSize',8,...
+        'Box','on');
+    
+    if configs.flags.savedata
+        figname=sprintf('al_size_scaling');
+        saveas(hfig_AL_scaling,[configs.files.dirout,'/',figname,'.png']);
+        saveas(hfig_AL_scaling,[configs.files.dirout,'/',figname,'.fig']);
+    end
+end
 %% Characterise shockwaves
 pal_data=pal_zxy0;      % a copy to safely pass data to analysis scripts (not functions!) 
 
