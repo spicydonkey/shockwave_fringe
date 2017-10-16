@@ -14,7 +14,7 @@ configs.misc.g=9.807;           % acceleration due to gravity [ms^-2]
 configs.misc.vel_z=configs.misc.g*configs.misc.tof; % free-fall velocity at detection [m/s]
 configs.misc.det_qe=0.1;        % detector quantum efficiency
 
-configs.files.path='\\AMPLPC29\Users\TDC_user\ProgramFiles\my_read_tdc_gui_v1.0.1\dld_output\20170716_atomlaser\d';
+configs.files.path='\\AMPLPC29\He BEC Archive\EXPERIMENT-DATA\AL_Shockwaves\medium_number_al\20170716_atomlaser\d';
 % configs.files.path='C:\Users\HE BEC\Documents\lab\shockwave\20170716_atomlaser\d';
 % configs.files.path='C:\Users\David\Documents\hebec\shockwave\data\d';
 
