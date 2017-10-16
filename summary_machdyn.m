@@ -15,7 +15,8 @@ plotNumPal=3;
 
 % plot
 alinewidth=1.8;
-afontsize=12;
+afontsize=13;
+
 
 %% main
 % parse directory
@@ -70,5 +71,7 @@ hold off;
 ax=gca;
 ax.FontSize=afontsize;
 box on;
+axis square;
+axis tight;
 xlabel('T [ms]');
 ylabel('Mach number');
