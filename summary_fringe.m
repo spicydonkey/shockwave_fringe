@@ -5,7 +5,7 @@
 %% CONFIG
 Ndpeakplot=5;    % number of fringe spacings to plot
 
-savefigs=1;
+savefigs=0;
 path_save='C:\Users\HE BEC\Desktop\shock_summary';
 
 path_data='C:\Users\HE BEC\Documents\lab\shockwave\summary\data\ver7';
@@ -267,7 +267,7 @@ xlabel('$2 m / \hbar \cdot (v^2 - c^2)^{1/2}$ [m$^{-1}$]');
 ylabel('$2 \pi / \lambda_{NF} $ [m$^{-1}$]');
 
 
-%% BCR theory - collate AL from each run
+%% BCR theory - TYPE 1
 % figure params
 mrk_size=5;
 fontsize=11;
@@ -278,15 +278,13 @@ paperposition=[0,0,papersize];
 
 
 %%% Data
-hfig_dpeak_theory_summ=figure('Units','centimeters',...
+hfig_bcr_theory1=figure('Units','centimeters',...
     'PaperUnits','centimeters',...
     'PaperPositionMode','manual',...
     'PaperSize',papersize,...
     'PaperPosition',paperposition);
 hold on;
 
-% namearray={'LineWidth','MarkerFaceColor'};      % error bar graphics properties
-% valarray={linewidth,'w'};                 % 90 deg (normal) data
 namearray={'LineWidth'};
 valarray={linewidth};
 
@@ -296,7 +294,7 @@ xth_jet=linspace(0.5,3);
 yth_jet=polyval([cos(jet_theta),0],xth_jet);
 
 % plot
-figure(hfig_dpeak_theory_summ);
+figure(hfig_bcr_theory1);
 hold on;
 plot(xth_jet,yth_jet,'k--','LineWidth',2);
 
@@ -351,40 +349,93 @@ set(lgd,'Units','normalized',...
     'Box','on');
 title(lgd,'$N_{0},\eta_{\textrm{RF}}$');
 
+% axis labels ~31/08/2017 - confusing
 xlabel('$2 m / \hbar \cdot (v^2 - c^2)^{1/2}$ [$\mu$m$^{-1}$]');
 ylabel('$2 \pi / \lambda_{\theta} $ [$\mu$m$^{-1}$]');
 
-% %%% linear fit
-% % get all data for fit
-% X=[];
-% Y=[];
-% for ii=1:Nexp
-%     X=[X,S_new(ii).X_collate];
-%     Y=[Y,S_new(ii).Y_collate];
-% end
-% pfit=polyfit(X,Y,1);
-% xfit=1e6*linspace(0.5,3);
-% yfit=polyval(pfit,xfit);
-% 
-% % plot
-% figure(hfig_dpeak_theory_summ);
-% hold on;
-% plot(xfit,yfit,'k-.','LineWidth',2);
+% save
+if savefigs
+    figname=sprintf('fig_BCR1_%s',datetimestr);
+    print(hfig_bcr_theory1,fullfile(path_save,figname),'-dpdf');
+end
 
-% %%% theory
-% xth=1e6*linspace(0.5,3);
-% yth=polyval([1,0],xth);
-% 
-% % plot
-% figure(hfig_dpeak_theory_summ);
-% hold on;
-% plot(xth,yth,'k-','LineWidth',2);
+%% BCR theory - TYPE 2
+%%% Data
+hfig_bcr_theory2=figure('Units','centimeters',...
+    'PaperUnits','centimeters',...
+    'PaperPositionMode','manual',...
+    'PaperSize',papersize,...
+    'PaperPosition',paperposition);
+hold on;
 
+%%% theory curve
+xth_jet=linspace(0.5,Ndpeakplot+0.5);
+yth_jet=polyval([0,1],xth_jet);
+
+% plot
+figure(hfig_bcr_theory2);
+hold on;
+plot(xth_jet,yth_jet,'k--','LineWidth',2);
+
+% cc=distinguishable_colors(Nexp);
+% cc_fringe=distinguishable_colors(Ndpeakplot);
+% cc_fringe=gray(Ndpeakplot+2);
+cc_fringe=viridis(Ndpeakplot);
+p=[];
+hexpconfig=[];
+for ii=1:Nexp
+    thisS=S_new(ii);
+    
+    ndpeak=(thisS.N_peak_max-1);
+    if Ndpeakplot<ndpeak
+        ndpeak=Ndpeakplot;
+    end
+    for jj=1:ndpeak
+        hdata_theory_summ=ploterr(jj,thisS.Y_collate(jj)./(cos(jet_theta)*thisS.X_collate(jj)),...
+            [],thisS.Y_collate_err_tot(jj)./(cos(jet_theta)*thisS.X_collate(jj)),...
+            mm{ii},'hhxy',0);
+        set(hdata_theory_summ(1),namearray,valarray,'Color',cc_fringe(jj,:),'MarkerFaceColor',cc_fringe(jj,:),'MarkerSize',mrk_size,'DisplayName',sprintf('%d',ii));
+        set(hdata_theory_summ(2),namearray,valarray,'Color',cc_fringe(jj,:),'MarkerFaceColor',cc_fringe(jj,:),'DisplayName','');
+%         set(hdata_theory_summ(3),namearray,valarray,'Color',cc_fringe(jj,:),'MarkerFaceColor',cc_fringe(jj,:),'DisplayName','');
+        %     p(ii)=hdata_theory_summ(1);
+    end
+    
+    % legend for experimental configs
+    displayname=sprintf('%0.2g, %0.2g',thisS.N0(1),thisS.eff_al);
+    displayname=strrep(displayname,'+0','');
+   	hexpconfig(ii)=plot(NaN,NaN,mm{ii},...
+        'Color',cgray,'MarkerFaceColor',cgray,...
+        'DisplayName',displayname);
+    p(ii)=hexpconfig(ii);
+end
+set(gca,'Units','normalized',...
+    'XTick',[0:1:Ndpeakplot],...
+    'YTick',[0:0.5:2],...
+    'FontUnits','points',...
+    'FontWeight','normal',...
+    'FontSize',fontsize,...
+    'PlotBoxAspectRatio',[1,0.6,1]);
+box on;
+% axis square;
+xlim([0.5,Ndpeakplot+0.5]);
+ylim([0.5,2]);
+
+% legend
+lgd=legend(p,'Location','northeast');
+set(lgd,'Units','normalized',...
+    'Position',[0.7 0.63 0.1 0.1],...
+    'FontSize',8,...
+    'Box','on');
+
+title(lgd,'$N_{0},\eta_{\textrm{RF}}$');
+
+xlabel('Fringe number');
+ylabel('$k_{\textrm{meas}}/k_{\textrm{theory}}$');
 
 % save
 if savefigs
-    figname=sprintf('data_BCR_%s',datetimestr);
-    print(hfig_dpeak_theory_summ,fullfile(path_save,figname),'-dpdf');
+    figname=sprintf('fig_BCR2_%s',datetimestr);
+    print(hfig_bcr_theory2,fullfile(path_save,figname),'-dpdf');
 end
 
 %% a representative interference pattern - 1D density profile along jet
@@ -440,7 +491,7 @@ ylabel('$\widetilde{n}$ (arb. u.)');
 set(gca,'Units','normalized',...
     'XTick',xtick_cfg,...
     'YTick',ytick_cfg,...
-    'XAxisLocation','top',...
+    'XAxisLocation','bottom',...
     'FontUnits','points',...
     'FontWeight','normal',...
     'FontSize',fontsize);

@@ -2,14 +2,21 @@
 clear all; close all; clc;
 
 %% configs
+% get directory storing config files
+dir_configs=mfilename('fullpath');
+dir_configs=fullfile(fileparts(dir_configs),'configs');
+
 % User path to config
 % path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_20170716_atomlaser.m';
 % path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_20170717_atomlaser.m';
 % path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_run1.m';
 % path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_run2.m';
 
-path_config='C:\David\matlab\shockwave_fringe\configs\config_20170716_atomlaser.m';
+% path_config='C:\David\matlab\shockwave_fringe\configs\config_20170716_atomlaser.m';
 % path_config='C:\David\matlab\shockwave_fringe\configs\config_20170717_atomlaser.m';
+
+config_name='config_run1';
+path_config=fullfile(dir_configs,config_name);
 
 % load config
 run(path_config);
