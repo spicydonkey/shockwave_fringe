@@ -14,8 +14,8 @@ idRunToPlot=[2,3];
 plotNumPal=3;
 
 % plot
-alinewidth=1.8;
-afontsize=13;
+alinewidth=2;
+afontsize=15;
 
 
 %% main
@@ -70,8 +70,9 @@ hold off;
 % annotate
 ax=gca;
 ax.FontSize=afontsize;
+ax.YTick=0:40:200;
 box on;
 axis square;
 axis tight;
-xlabel('T [ms]');
+xlabel('t [ms]');
 ylabel('Mach number');
