@@ -15,7 +15,7 @@ dir_configs=fullfile(fileparts(dir_configs),'configs');
 % path_config='C:\David\matlab\shockwave_fringe\configs\config_20170716_atomlaser.m';
 % path_config='C:\David\matlab\shockwave_fringe\configs\config_20170717_atomlaser.m';
 
-config_name='config_run1';
+config_name='config_20170717_atomlaser.m';
 path_config=fullfile(dir_configs,config_name);
 
 % load config
@@ -616,19 +616,22 @@ pal_nden_exp=Nal./pal_vol;
 % R: very good!
 % X (thickness): not so good. breathing mode?
 if verbose>0 && vgraph>0
-    logtol=1.5;
+    logtol=1;
     linewidth=1.5;
-    amarkersize=6;
-    fontsize=11;
+    amarkersize=7;
+    fontsize=12;
 %     scaleexp=1/5;       % proportional to sqrt of chemical potential
-    
+
     hfig_AL_scaling=figure();
+    
     p=[];
     pp=[];
     
     %%% Radius
+    subplot(2,1,1);
+    ax(1)=gca;
     p(1)=plot(N0,1e3*pal_R,'o',...
-        'MarkerEdgeColor','k','MarkerFaceColor',cc(1,:),'MarkerSize',amarkersize,...
+        'MarkerEdgeColor',cc(1,:),'MarkerFaceColor',cc(1,:),'MarkerSize',amarkersize,...
         'DisplayName','Radius');
     
     % power-law fit
@@ -638,12 +641,14 @@ if verbose>0 && vgraph>0
     xxfit=linspace(min(xx),max(xx),2);
     yyfit=polyval(pfit_al_r,xxfit);
     hold on;
-    pp(1)=plot(exp(xxfit),exp(yyfit),'k-','LineWidth',linewidth);
+    pp(1)=plot(exp(xxfit),exp(yyfit),'k--','LineWidth',linewidth);
     uistack(pp(1),'bottom');
     
     %%% Thickness
+    subplot(2,1,2);
+    ax(2)=gca;
     p(2)=plot(N0,1e3*pal_Rx,'^',...
-        'MarkerEdgeColor','k','MarkerFaceColor',cc(2,:),'MarkerSize',amarkersize,...
+        'MarkerEdgeColor',cc(2,:),'MarkerFaceColor',cc(2,:),'MarkerSize',amarkersize,...
         'DisplayName','Thickness');
     
     % power-law fit
@@ -656,27 +661,39 @@ if verbose>0 && vgraph>0
     pp(2)=plot(exp(xxfit),exp(yyfit),'k--','LineWidth',linewidth);
     uistack(pp(2),'bottom');    
     
-    set(gca,'XScale','log');
-    set(gca,'YScale','log');
-    xlim(minmax_logtol(N0,logtol));
-    ylim(minmax_logtol(1e3*[pal_R;pal_Rx],logtol));
-    
-    %%% annotation
-    xlabel('$N_{0}$');
-    ylabel('$R_{\textrm{HWHM}}$ [mm]');
-    
-    set(gca,'Units','normalized',...
+    for ii=1:2
+        set(ax(ii),'XScale','log');
+        set(ax(ii),'YScale','log');
+        xlim(ax(ii),minmax_logtol(N0,logtol));
+        set(ax(ii),'Units','normalized',...
         'FontUnits','points',...
         'FontWeight','normal',...
         'FontSize',fontsize,...
-        'PlotBoxAspectRatio',[1,0.6,1]);
-    box on;
+        'PlotBoxAspectRatio',[1,0.5,1]);
+        box on;
+        xlabel(ax(ii),'$N_{0}$');
+        ylabel(ax(ii),'$R_{\textrm{ff}}$ (mm)');
+    end
+    %%% annotation
+    %     set(gca,'XScale','log');
+%     set(gca,'YScale','log');
+%     xlim(minmax_logtol(N0,logtol));
+%     ylim(minmax_logtol(1e3*[pal_R;pal_Rx],logtol));
+%     xlabel('$N_{0}$');
+%     ylabel('$R_{\textrm{ff}}$ (mm)');
+    
+%     set(gca,'Units','normalized',...
+%         'FontUnits','points',...
+%         'FontWeight','normal',...
+%         'FontSize',fontsize,...
+%         'PlotBoxAspectRatio',[1,0.6,1]);
+%     box on;
     
     % Legend
-    lgd=legend(p,'Location','northwest');
-    set(lgd,'Units','normalized',...
-        'FontSize',8,...
-        'Box','on');
+%     lgd=legend(p,'Location','northwest');
+%     set(lgd,'Units','normalized',...
+%         'FontSize',8,...
+%         'Box','on');
     
     if configs.flags.savedata
         figname=sprintf('al_size_scaling');
@@ -684,6 +701,7 @@ if verbose>0 && vgraph>0
         saveas(hfig_AL_scaling,[configs.files.dirout,'/',figname,'.fig']);
     end
 end
+
 %% Characterise shockwaves
 pal_data=pal_zxy0;      % a copy to safely pass data to analysis scripts (not functions!) 
 

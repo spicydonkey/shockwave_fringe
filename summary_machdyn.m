@@ -74,5 +74,5 @@ ax.YTick=0:40:200;
 box on;
 axis square;
 axis tight;
-xlabel('t [ms]');
+xlabel('t (ms)');
 ylabel('Mach number');
