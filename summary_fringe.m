@@ -288,8 +288,8 @@ namearray={'LineWidth'};
 valarray={linewidth};
 
 %%% approx theory - at an angle
-jet_theta=0.61;      % jet angle used
-xth_jet=linspace(0.5,3);
+jet_theta=0;      %1.3;      % jet angle used
+xth_jet=linspace(1.5,4);
 yth_jet=polyval([cos(jet_theta),0],xth_jet);
 
 % plot
@@ -330,15 +330,16 @@ for ii=1:Nexp
 end
 set(gca,'Units','normalized',...
     'YTick',[0:0.5:3],...
-    'XTick',[0:0.5:3],...
+    'XTick',[0:0.5:5],...
     'FontUnits','points',...
     'FontWeight','normal',...
     'FontSize',fontsize,...
     'PlotBoxAspectRatio',[1,0.6,1]);
 box on;
 % axis square;
-xlim([0.75,2.75]);
-ylim([0.3,1.5]);
+% xlim([0.75,2.75]);
+% ylim([0.3,1.5]);
+axis tight;
 
 % legend
 lgd=legend(p,'Location','northwest');
@@ -415,9 +416,9 @@ set(gca,'Units','normalized',...
     'FontSize',fontsize,...
     'PlotBoxAspectRatio',[1,0.6,1]);
 box on;
-% axis square;
-xlim([0.5,Ndpeakplot+0.5]);
-ylim([0.5,2]);
+% % axis square;
+% xlim([0.5,Ndpeakplot+0.5]);
+% ylim([0.5,2]);
 
 % legend
 lgd=legend(p,'Location','northeast');
@@ -441,9 +442,9 @@ end
 % Run 2 - the second dataset in mlist - for plotting since already used in
 % paper, most fringes too
 
-pal_id_plot=6;      % the PAL number to plot
+pal_id_plot=13;      % the PAL number to plot
 
-xlim_cfg=[0,0.7];
+xlim_cfg=[0,1.2];
 ytick_cfg=-1:1:1;
 xtick_cfg=xlim_cfg(1):0.2:xlim_cfg(2);
 
