@@ -15,7 +15,11 @@ dir_configs=fullfile(fileparts(dir_configs),'configs');
 % path_config='C:\David\matlab\shockwave_fringe\configs\config_20170716_atomlaser.m';
 % path_config='C:\David\matlab\shockwave_fringe\configs\config_20170717_atomlaser.m';
 
-config_name='config_20170717_atomlaser.m';
+% config_name='config_20170716_atomlaser.m';
+% config_name='config_20170717_atomlaser.m';
+% config_name='config_run1.m';
+config_name='config_run2.m';
+
 path_config=fullfile(dir_configs,config_name);
 
 % load config

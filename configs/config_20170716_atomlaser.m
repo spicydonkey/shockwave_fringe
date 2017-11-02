@@ -24,7 +24,7 @@ configs.files.dirout=fullfile(configs.files.dir_data,'output');      % output di
 
 configs.load.version=1.1;         % TXY load stage version number
 
-configs.load.id=1:3615; %3615;         % file id numbers to use for analysis
+configs.load.id=1:300; %3615;         % file id numbers to use for analysis
 configs.load.mincount=1000;         % min counts in window - 0 for no min
 configs.load.maxcount=Inf;          % max counts in window - Inf for no max
 
@@ -47,9 +47,13 @@ configs.pal.nfitstart=2;    % AL pulse ID to begin fit from
 
 %% main_process_pal
 % configure the 1d density profile
-fringe_cfg.offset=[0,-0.006];       % yz translation for centering transformation
-fringe_cfg.theta=1.1;               % rotation angle around x-axis (rad) - to align fringes in vertical Y-axis
-fringe_cfg.width=2e-3;              % 1d profile perpendicularly [m]
+% fringe_cfg.offset=[0,-0.006];       % yz translation for centering transformation
+% fringe_cfg.theta=1.1;               % rotation angle around x-axis (rad) - to align fringes in vertical Y-axis
+% fringe_cfg.width=2e-3;              % 1d profile perpendicularly [m]
+% fringe_cfg.dlim=[0,20e-3];          % line profile limit
+fringe_cfg.offset=[0,0];       % yz translation for centering transformation
+fringe_cfg.theta=0.61;               % rotation angle around x-axis (rad) - to align fringes in vertical Y-axis
+fringe_cfg.width=0.5e-3;              % 1d profile perpendicularly [m]
 fringe_cfg.dlim=[0,20e-3];          % line profile limit
 
 nsmooth_1d_raw=5;   % moving average sample size - smoothing raw 1D profile
