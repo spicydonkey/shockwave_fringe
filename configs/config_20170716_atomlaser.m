@@ -1,7 +1,7 @@
 %% configs
 %% main_shockfringe
 configs.flags.verbose=2;
-configs.flags.savedata=0;
+configs.flags.savedata=1;
 configs.flags.archive_txy=1;
 configs.flags.force_all_stages=0;
 configs.flags.graphics=1;
@@ -24,7 +24,7 @@ configs.files.dirout=fullfile(configs.files.dir_data,'output');      % output di
 
 configs.load.version=1.1;         % TXY load stage version number
 
-configs.load.id=1:300; %3615;         % file id numbers to use for analysis
+configs.load.id=1:3615;             % file id numbers to use for analysis
 configs.load.mincount=1000;         % min counts in window - 0 for no min
 configs.load.maxcount=Inf;          % max counts in window - Inf for no max
 

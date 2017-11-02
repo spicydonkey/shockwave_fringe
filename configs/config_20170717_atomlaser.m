@@ -1,10 +1,10 @@
 %% configs
 %% main_shockfringe
-configs.flags.verbose=2;
-configs.flags.savedata=0;
+configs.flags.verbose=0;
+configs.flags.savedata=1;
 configs.flags.archive_txy=1;
 configs.flags.force_all_stages=0;
-configs.flags.graphics=1;
+configs.flags.graphics=0;
 configs.flags.build_txy=1;
 
 configs.misc.hbar=1.055e-34;    % reduced Planck constant [Js]
