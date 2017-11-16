@@ -1,31 +1,34 @@
 %% clean workspace
 clear all; close all; clc;
 
-%% configs
+%% USER CONFIGS
+% User's path to config
+%   NOTE: defined relative to the configs sub-directory
+config_name='config_run2.m';
+
+
+
+
+
+%% initialise
+% define vars to save to output
+%   NOTE: this is the difference between having a >10 gb and a 100 mb output
+% vars_save={'configs','path_config',...
+%     'fullpath_config'};
+vars_save={'r_cent','tof','g','nden_r','t0','c_const','pal_R','pal_nseq',...
+    'N_peak_max', 'lambda_ff', 'lambda_ff_err', 'Nal', 'Nal_err_tot', 'N0', 'N0_err_fit',...
+        'v','c','lambda_nf', 'eff_al',...
+        'dn1d','d_1d','ppeak','pal_R',...
+};  % lazy copy-paste of all the load-worthy vars from summary codes
+vars_save=unique(vars_save);
+
+
 % get directory storing config files
 dir_configs=mfilename('fullpath');
 dir_configs=fullfile(fileparts(dir_configs),'configs');
-
-% User path to config
-% path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_20170716_atomlaser.m';
-% path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_20170717_atomlaser.m';
-% path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_run1.m';
-% path_config='C:\Users\HE BEC\Documents\MATLAB\shockwave_fringe\configs\config_run2.m';
-
-% path_config='C:\David\matlab\shockwave_fringe\configs\config_20170716_atomlaser.m';
-% path_config='C:\David\matlab\shockwave_fringe\configs\config_20170717_atomlaser.m';
-
-% config_name='config_20170716_atomlaser.m';
-% config_name='config_20170717_atomlaser.m';
-% config_name='config_run1.m';
-config_name='config_run2.m';
-
 path_config=fullfile(dir_configs,config_name);
+run(path_config);       % load config
 
-% load config
-run(path_config);
-
-%% initialise
 % flags
 do_next=configs.flags.force_all_stages;
 verbose=configs.flags.verbose;
@@ -969,16 +972,26 @@ if verbose>0
     disp('===================ALL TASKS COMPLETED===================');
 end
 
-%% save results
-if configs.flags.savedata
-    if verbose>0
-        fprintf('Saving data. This may take a minute.\n');
-    end
-    
-    %%% data
-    % get all vars in workspace except graphics handles
-    allvars=whos;
-    tosave=cellfun(@isempty,regexp({allvars.class},'^matlab\.(ui|graphics)\.'));
 
-    save([configs.files.dirout,'/',mfilename,'_data','.mat'],allvars(tosave).name,'-v7.3','-nocompression');
+%% Save results
+if configs.flags.savedata
+    % TODO - package this into a function
+    % TODO - if datafile already exists, MOVE it
+    
+    % parse list of vars user wants to save and check against workspace if exists
+    varsExist=cell(size(vars_save));
+    varCounter=0;
+    for i = 1:length(vars_save)
+        tVar=vars_save{i};
+        if ~exist(tVar,'var')
+            warning(['Variable "',tVar,'" does not exist.']);
+            continue;
+        end
+        varCounter=varCounter+1;
+        varsExist{varCounter}=tVar;
+    end
+    varsExist=varsExist(1:varCounter);
+
+    save([configs.files.dirout,'/',mfilename,'_data','.mat'],varsExist{:});
+    
 end
