@@ -12,7 +12,7 @@ configs.misc.m=6.647e-27;       % mass of helium [kg]
 configs.misc.tof=0.416;         % free-fall TOF from trap to detector [s]
 configs.misc.g=9.807;           % acceleration due to gravity [ms^-2]
 configs.misc.vel_z=configs.misc.g*configs.misc.tof; % free-fall velocity at detection [m/s]
-configs.misc.det_qe=0.1;        % detector quantum efficiency
+configs.misc.det_qe=0.045;        % REDUCED detector quantum efficiency (4.6 V)
 
 configs.files.path='\\AMPLPC29\He BEC Archive\EXPERIMENT-DATA\AL_Shockwaves\medium_number_al\20170717_atomlaser\d';
 
@@ -45,14 +45,14 @@ configs.pal.nfitstart=2;    % AL pulse ID to begin fit from
 
 %% main_process_pal
 % configure the 1d density profile
-% fringe_cfg.offset=[0,-0.006];       % yz translation for centering transformation
-% fringe_cfg.theta=1.1;               % rotation angle around x-axis (rad) - to align fringes in vertical Y-axis
-% fringe_cfg.width=2e-3;              % 1d profile perpendicularly [m]
-% fringe_cfg.dlim=[0,20e-3];          % line profile limit
-fringe_cfg.offset=[0,0];       % yz translation for centering transformation
-fringe_cfg.theta=0.61;               % rotation angle around x-axis (rad) - to align fringes in vertical Y-axis
-fringe_cfg.width=0.5e-3;              % 1d profile perpendicularly [m]
+fringe_cfg.offset=[0,-0.006];       % yz translation for centering transformation
+fringe_cfg.theta=1.1;               % rotation angle around x-axis (rad) - to align fringes in vertical Y-axis
+fringe_cfg.width=2e-3;              % 1d profile perpendicularly [m]
 fringe_cfg.dlim=[0,20e-3];          % line profile limit
+% fringe_cfg.offset=[0,0];       % yz translation for centering transformation
+% fringe_cfg.theta=0.61;               % rotation angle around x-axis (rad) - to align fringes in vertical Y-axis
+% fringe_cfg.width=0.5e-3;              % 1d profile perpendicularly [m]
+% fringe_cfg.dlim=[0,20e-3];          % line profile limit
 
 nsmooth_1d_raw=5;   % moving average sample size - smoothing raw 1D profile
 
@@ -63,7 +63,7 @@ n_sm_post=10;
 
 % peak detection algorithm
 slopethreshold=1e-5;
-ampthreshold=0.1;
+ampthreshold=0.05;
 smoothwidth=0;          % 0 to no smoothing in peak finding
 peakgroup=5;
 smoothtype=1;   % smoothing is off

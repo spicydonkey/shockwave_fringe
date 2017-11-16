@@ -1,10 +1,10 @@
 %% configs
 %% main_shockfringe
-configs.flags.verbose=2;
-configs.flags.savedata=0;
+configs.flags.verbose=0;
+configs.flags.savedata=1;
 configs.flags.archive_txy=1;
 configs.flags.force_all_stages=0;
-configs.flags.graphics=1;
+configs.flags.graphics=0;
 configs.flags.build_txy=1;
 
 configs.misc.hbar=1.055e-34;    % reduced Planck constant [Js]
@@ -45,14 +45,14 @@ configs.pal.nfitstart=5;    % AL pulse ID to begin fit from
 
 %% main_process_pal
 % configure the 1d density profile
-% fringe_cfg.offset=[0,-0.006];       % yz translation for centering transformation
-% fringe_cfg.theta=1.1;               % rotation angle around x-axis (rad) - to align fringes in vertical Y-axis
-% fringe_cfg.width=2e-3;              % 1d profile perpendicularly [m]
-% fringe_cfg.dlim=[0,20e-3];          % line profile limit
-fringe_cfg.offset=[0,0];       % yz translation for centering transformation
-fringe_cfg.theta=0.61;               % rotation angle around x-axis (rad) - to align fringes in vertical Y-axis
-fringe_cfg.width=0.5e-3;              % 1d profile perpendicularly [m]
+fringe_cfg.offset=[0,-0.006];       % yz translation for centering transformation
+fringe_cfg.theta=1.1;               % rotation angle around x-axis (rad) - to align fringes in vertical Y-axis
+fringe_cfg.width=2e-3;              % 1d profile perpendicularly [m]
 fringe_cfg.dlim=[0,20e-3];          % line profile limit
+% fringe_cfg.offset=[0,0];       % yz translation for centering transformation
+% fringe_cfg.theta=0.61;               % rotation angle around x-axis (rad) - to align fringes in vertical Y-axis
+% fringe_cfg.width=0.5e-3;              % 1d profile perpendicularly [m]
+% fringe_cfg.dlim=[0,20e-3];          % line profile limit
 
 nsmooth_1d_raw=5;   % moving average sample size - smoothing raw 1D profile
 
@@ -62,7 +62,7 @@ n_sm_bgd=15;
 n_sm_post=10;
 
 % peak detection algorithm
-slopethreshold=1e-3;
+slopethreshold=1e-4;
 ampthreshold=0.05;
 smoothwidth=0;          % 0 to no smoothing in peak finding
 peakgroup=5;
