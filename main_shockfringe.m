@@ -483,7 +483,7 @@ if vgraph>1
     % free up memory
     clearvars mov;
 end
-% clearvars nden3;
+clearvars nden3;
 
 
 %% Characterise AL
@@ -711,9 +711,20 @@ pal_data=pal_zxy0;      % a copy to safely pass data to analysis scripts (not fu
 
 %%% process PAL
 main_process_pal;
+% NOTE - this script requires these variables to be pre-defined:
+%   - pal_data
+%   - edges, cents
+%   - fringe_cfg
+%   - pal_nseq
+%   - nsmooth_1d_raw
+%   - plot_nrow, plot_ncol
+%   - N0, Nal
+%   - cc
+% etc.
 
 %%% fringe characterisation
 DemoFringePeak;
+% NOTE - this too
 
 % store results - overwritten in current implementation of bootstrap
 Rff_peak=1e-3*peak_pos;     % peak positions (radial) [m]
@@ -763,7 +774,7 @@ Nal_avg_sub=mean(Nal_subset,2);         % avg PAL number
 Nal_err_sub=std(Nal_subset,0,2)*sqrt(bootstrap_ndata);	% SE PAL number from bootstrap
 Nal_err_tot=sqrt(Nal_err_sub.^2+Nal_err_fit.^2);    % add in quadrature with fit uncertainty
 
-clearvars pal_zxy0;     % clean workspace
+clearvars pal_zxy0 pal_data;     % clean workspace
 
 %% Summary - plot with errors
 %%% lambda vs number in atom laser
