@@ -4,8 +4,10 @@ clear all; close all; clc;
 %% USER CONFIGS
 % User's path to config
 %   NOTE: defined relative to the configs sub-directory
+% config_name='config_run1.m';
 % config_name='config_run2.m';
 config_name='config_20170716_atomlaser.m';
+% config_name='config_20170717_atomlaser.m';
 
 %% initialise
 % define vars to save to output

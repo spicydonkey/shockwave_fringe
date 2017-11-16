@@ -8,7 +8,7 @@ Ndpeakplot=5;    % number of fringe spacings to plot
 savefigs=0;
 path_save='C:\Users\HE BEC\Desktop\shock_summary';
 
-path_data='C:\Users\HE BEC\Documents\lab\shockwave\summary\data\ver8';
+path_data='C:\Users\HE BEC\Documents\lab\shockwave\summary\data\ver9.1';
 data_regexp='run_*.mat';
 
 datetimestr=datestr(datetime,'yyyymmdd_HHMMSS');    % timestamp when function called
@@ -288,8 +288,9 @@ namearray={'LineWidth'};
 valarray={linewidth};
 
 %%% approx theory - at an angle
-jet_theta=0;      %1.3;      % jet angle used
-xth_jet=linspace(1.5,4);
+jet_theta=1.1;      %1.3;      % jet angle used
+% xth_jet=linspace(1.5,4);
+xth_jet=linspace(0.5,3);
 yth_jet=polyval([cos(jet_theta),0],xth_jet);
 
 % plot
@@ -444,7 +445,8 @@ end
 
 pal_id_plot=13;      % the PAL number to plot
 
-xlim_cfg=[0,1.2];
+% xlim_cfg=[0,1.2];
+xlim_cfg=[0,0.7];
 ytick_cfg=-1:1:1;
 xtick_cfg=xlim_cfg(1):0.2:xlim_cfg(2);
 

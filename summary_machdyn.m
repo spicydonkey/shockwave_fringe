@@ -1,7 +1,7 @@
 %% Summary plot for the hypersonic transition through PAL development
 
 %% configs
-path_data='C:\Users\HE BEC\Documents\lab\shockwave\summary\data\ver7';
+path_data='C:\Users\HE BEC\Documents\lab\shockwave\summary\data\ver9.1';
 data_regexp='run_*.mat';
 
 datetimestr=datestr(datetime,'yyyymmdd_HHMMSS');    % timestamp when function called
