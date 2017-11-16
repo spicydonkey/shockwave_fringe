@@ -2,8 +2,10 @@ BCR analysis
 --------------------------
 
 ## TODO
-* [ ] vars_to_save feature with the main script
-
+* [x] vars_to_save feature with the main script
+	* 3 Gb --> 30 kB!
+	* [ ] TEST by analysing the whole database analysis again
+	
 ## Workflow
 1. First, this is the tricky bit: Configure the analysis as a .m file. See a predefined one as a template.
 2. Nice. Now edit the appropriate config line in `main_shockfringe.m`, which is the main analysis script.

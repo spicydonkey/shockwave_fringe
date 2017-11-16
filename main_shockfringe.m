@@ -4,15 +4,12 @@ clear all; close all; clc;
 %% USER CONFIGS
 % User's path to config
 %   NOTE: defined relative to the configs sub-directory
-config_name='config_run2.m';
-
-
-
-
+% config_name='config_run2.m';
+config_name='config_20170716_atomlaser.m';
 
 %% initialise
 % define vars to save to output
-%   NOTE: this is the difference between having a >10 gb and a 100 mb output
+%   NOTE: this is the difference between having a 1 gb and a 1 mb output
 % vars_save={'configs','path_config',...
 %     'fullpath_config'};
 vars_save={'r_cent','tof','g','nden_r','t0','c_const','pal_R','pal_nseq',...
