@@ -5,8 +5,8 @@ clear all; close all; clc;
 % User's path to config
 %   NOTE: defined relative to the configs sub-directory
 % config_name='config_run1.m';
-% config_name='config_run2.m';
-config_name='config_20170716_atomlaser.m';
+config_name='config_run2.m';
+% config_name='config_20170716_atomlaser.m';
 % config_name='config_20170717_atomlaser.m';
 
 %% initialise
@@ -18,6 +18,7 @@ vars_save={'r_cent','tof','g','nden_r','t0','c_const','pal_R','pal_nseq',...
     'N_peak_max', 'lambda_ff', 'lambda_ff_err', 'Nal', 'Nal_err_tot', 'N0', 'N0_err_fit',...
         'v','c','lambda_nf', 'eff_al',...
         'dn1d','d_1d','ppeak','pal_R',...
+        'pal_Rx',...
 };  % lazy copy-paste of all the load-worthy vars from summary codes
 vars_save=unique(vars_save);
 
